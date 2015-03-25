@@ -1,0 +1,17 @@
+# content files
+
+_build/
+output/
+
+# binary
+*.pyc
+
+# sublime files
+
+*.sublime-*
+
+# temp
+content/downloads/notebooks/.ipynb_checkpoints/
+.doit.db
+cache/
+themes/
