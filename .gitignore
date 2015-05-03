@@ -15,3 +15,5 @@ content/downloads/notebooks/.ipynb_checkpoints/
 .doit.db
 cache/
 themes/
+
+*/.ipynb_checkpoints/

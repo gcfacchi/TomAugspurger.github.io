@@ -3,76 +3,14 @@
 from __future__ import unicode_literals
 import time
 
-# !! This is the configuration of Nikola. !! #
-# !!  You should edit it to your liking.  !! #
-
-
-# ! Some settings can be different in different languages.
-# ! A comment stating (translatable) is used to denote those.
-# ! There are two ways to specify a translatable setting:
-# ! (a) BLOG_TITLE = "My Blog"
-# ! (b) BLOG_TITLE = {"en": "My Blog", "es": "Mi Blog"}
-# ! Option (a) is used when you don't want that setting translated.
-# ! Option (b) is used for settings that are different in different languages.
-
 
 # Data about this site
 BLOG_AUTHOR = "Tom Augspurger"  # (translatable)
-BLOG_TITLE = "Tom's Blog"  # (translatable)
-# This is the main URL for your site. It will be used
-# in a prominent link
+BLOG_TITLE = "DataFrames ∀"
 SITE_URL = "http://tomaugspurger.github.io/"
-# This is the URL where Nikola's output will be deployed.
-# If not set, defaults to SITE_URL
-# BASE_URL = "tomaugspurger.github.io/"
 BLOG_EMAIL = "tom.w.augspurger@gmail.com"
 BLOG_DESCRIPTION = "Data Science. Stats. Pandas."  # (translatable)
 
-# Nikola is multilingual!
-#
-# Currently supported languages are:
-#
-# en     English
-# ar     Arabic
-# bg     Bulgarian
-# ca     Catalan
-# cs     Czech [ALTERNATIVELY cz]
-# da     Danish
-# de     German
-# el     Greek [NOT gr]
-# eo     Esperanto
-# es     Spanish
-# et     Estonian
-# eu     Basque
-# fa     Persian
-# fi     Finnish
-# fr     French
-# hi     Hindi
-# hr     Croatian
-# id     Indonesian
-# it     Italian
-# ja     Japanese [NOT jp]
-# ko     Korean
-# nb     Norwegian Bokmål
-# nl     Dutch
-# pl     Polish
-# pt_br  Portuguese (Brasil)
-# ru     Russian
-# sk     Slovak
-# sl     Slovene
-# sr     Serbian (Cyrillic)
-# sv     Swedish
-# tr     Turkish [NOT tr_TR]
-# ur     Urdu
-# zh_cn  Chinese (Simplified)
-#
-# If you want to use Nikola with a non-supported language you have to provide
-# a module containing the necessary translations
-# (cf. the modules at nikola/data/themes/base/messages/).
-# If a specific post is not translated to a language, then the version
-# in the default language will be shown instead.
-
-# What is the default language?
 DEFAULT_LANG = "en"
 
 # What other languages do you have?
@@ -131,29 +69,9 @@ NAVIGATION_LINKS = {
 # Name of the theme to use.
 THEME = "zen-ipython"
 
-# Below this point, everything is optional
-
-# Post's dates are considered in UTC by default, if you want to use
-# another time zone, please set TIMEZONE to match. Check the available
-# list from Wikipedia:
-# http://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-# (e.g. 'Europe/Zurich')
-# Also, if you want to use a different time zone in some of your posts,
-# you can use the ISO 8601/RFC 3339 format (ex. 2012-03-30T23:00:00+02:00)
 TIMEZONE = "America/Chicago"
 
-# If you want to use ISO 8601 (also valid RFC 3339) throughout Nikola
-# (especially in new_post), set this to True.
-# Note that this does not affect DATE_FORMAT.
 FORCE_ISO8601 = True
-
-# Date format used to display post dates.
-# (str used by datetime.datetime.strftime)
-# DATE_FORMAT = '%Y-%m-%d %H:%M'
-
-# Date format used to display post dates, if local dates are used.
-# (str used by moment.js)
-# JS_DATE_FORMAT = 'YYYY-MM-DD HH:mm'
 
 # Date fanciness.
 #

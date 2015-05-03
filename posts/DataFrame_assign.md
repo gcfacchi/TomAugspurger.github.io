@@ -1,7 +1,7 @@
 .. title: Pandas Flow
 .. date: 2015-01-18 9:00
 .. slug: pandas-assign
-.. tags: python, data science, pandas
+.. tags: python, data science, pandas, draft
 .. status: draft
 
 Pandas 0.16 is [brining](https://github.com/pydata/pandas/pull/9239) a new method to DataFrames, `assign`.
