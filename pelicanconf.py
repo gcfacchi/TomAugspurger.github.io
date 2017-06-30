@@ -35,5 +35,6 @@ DEFAULT_PAGINATION = 10
 PLUGINS = [
     'pelican-yaml-metadata'
 ]
-
+CSS_FILE = "main.css"
+THEME = 'cebong'
 # RELATIVE_URLS = True
