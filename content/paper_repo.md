@@ -1,8 +1,10 @@
-.. title: Organizing Papers
-.. date: 2014-02-13 12:00
-.. slug: Organizing Papers
-.. category: scripts
-.. tags: python, scripts
+---
+title: Organizing Papers
+date: 2014-02-13 12:00
+slug: Organizing Papers
+category: scripts
+tags: python, scripts
+---
 
 As a graduate student, you read a lot of journal articles... *a lot*.
 With the material in the articles being as difficult as it is, I didn't want to worry about organizing everything as well.

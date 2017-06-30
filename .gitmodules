@@ -1,0 +1,3 @@
+[submodule "pelican-yaml-metadata"]
+	path = pelican-yaml-metadata
+	url = https://github.com/pR0Ps/pelican-yaml-metadata
