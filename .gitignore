@@ -17,3 +17,5 @@ cache/
 themes/
 
 */.ipynb_checkpoints/
+stitch/
+modern-pandas/

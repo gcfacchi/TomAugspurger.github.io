@@ -37,5 +37,5 @@ PLUGINS = [
     'pelican-yaml-metadata',
 ]
 CSS_FILE = "main.css"
-THEME = 'cebong'
+THEME = "pelican-themes/pelican-hss"
 # RELATIVE_URLS = True
