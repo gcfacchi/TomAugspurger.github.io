@@ -1,7 +1,9 @@
-.. title: Using Python to tackle the CPS (Part 2)
-.. date: 2014-02-4 12:00
-.. slug: tackling the cps (part 2)
-.. category: python
+---
+title: Using Python to tackle the CPS (Part 2)
+date: 2014-02-4 12:00
+slug: tackling the cps (part 2)
+category: python
+---
 
 [Last time](http://tomaugspurger.github.io/blog/2014/01/27/tackling%20the%20cps/), we used Python to fetch some data from the [Current Population Survey](http://www.census.gov/cps/). Today, we'll work on parsing the files we just downloaded.
 

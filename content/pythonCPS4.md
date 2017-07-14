@@ -1,7 +1,9 @@
-.. title: Using Python to tackle the CPS (Part 4)
-.. date: 2014-05-19 12:01
-.. slug: tackling the cps (part 4)
-.. category: python
+---
+title: Using Python to tackle the CPS (Part 4)
+date: 2014-05-19 12:01
+slug: tackling the cps (part 4)
+category: python
+---
 
 Last time, we got to where we'd like to have started: One file per month, with each month laid out the same.
 

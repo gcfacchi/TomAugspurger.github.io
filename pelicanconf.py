@@ -33,7 +33,8 @@ DEFAULT_PAGINATION = 10
 
 # Uncomment following line if you want document-relative URLs when developing
 PLUGINS = [
-    'pelican-yaml-metadata'
+    'pandoc_reader',         # the order matters here
+    'pelican-yaml-metadata',
 ]
 CSS_FILE = "main.css"
 THEME = 'cebong'
