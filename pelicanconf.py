@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 
 AUTHOR = 'Tom Augspurger'
 SITENAME = 'datas-frame'
-SITEURL = ''
+SITEURL = 'https://tomaugspurger.github.io'
 
 PATH = 'content'
 
@@ -33,9 +33,9 @@ DEFAULT_PAGINATION = 10
 
 # Uncomment following line if you want document-relative URLs when developing
 PLUGINS = [
-    'pandoc_reader',         # the order matters here
+    # 'pandoc_reader',  # waiting on https://github.com/liob/pandoc_reader/pull/4
     'pelican-yaml-metadata',
 ]
 CSS_FILE = "main.css"
 THEME = "pelican-themes/pelican-hss"
-# RELATIVE_URLS = True
+RELATIVE_URLS = True
