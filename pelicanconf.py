@@ -19,13 +19,6 @@ TRANSLATION_FEED_ATOM = None
 AUTHOR_FEED_ATOM = None
 AUTHOR_FEED_RSS = None
 
-# Blogroll
-LINKS = (('Pelican', 'http://getpelican.com/'),
-         ('Python.org', 'http://python.org/'),
-         ('Jinja2', 'http://jinja.pocoo.org/'),
-         ('You can modify those links in your config file', '#'),)
-
-# Social widget
 SOCIAL = (('You can add links in your config file', '#'),
           ('Another social link', '#'),)
 
@@ -43,13 +36,12 @@ STATIC_PATHS = [
     "modern_7_timeseries_files/",
 ]
 
-# Uncomment following line if you want document-relative URLs when developing
 PLUGIN_PATHS = [
     'pelican-plugins'
 ]
 PLUGINS = [
-    # 'pandoc_reader',  # waiting on https://github.com/liob/pandoc_reader/pull/4
+    'pandoc_reader',  # waiting on https://github.com/liob/pandoc_reader/pull/4
     'pelican-yaml-metadata',
-    'render_math',
+    # 'render_math',
 ]
 RELATIVE_URLS = True

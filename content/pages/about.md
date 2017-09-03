@@ -19,4 +19,4 @@ I work for Continuum Analytics.
 ## Contact
 
 Either on Twitter [@TomAugspurger](http://Twitter.com/TomAugspurger) or by email
-at tom.w.augspurger@gmail.com
+at <tom.w.augspurger@gmail.com>
