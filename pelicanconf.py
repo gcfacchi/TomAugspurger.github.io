@@ -44,3 +44,4 @@ PLUGINS = [
     # 'render_math',
 ]
 RELATIVE_URLS = True
+FEED_RSS = 'feed'
