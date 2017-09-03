@@ -1,7 +1,23 @@
 ---
 title: Modern Pandas (Part 1)
 date: 2016-03-21
+slug: "modern-1-intro"
 ---
+
+---
+
+This is part 1 in my series on writing modern idiomatic pandas.
+
+- [Modern Pandas](modern-1-intro.md)
+- [Method Chaining](method-chaining.md)
+- [Indexes](modern-3-indexes.md)
+- [Fast Pandas](modern-4-performance.md)
+- [Tidy Data](modern-5-tidy.md)
+- [Visualization](modern-6-visualization.md)
+- [Time Series](modern-7-timeseries.md)
+
+---
+
 # Effective Pandas
 
 ## Introduction

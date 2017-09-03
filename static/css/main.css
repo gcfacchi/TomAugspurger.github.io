@@ -266,3 +266,6 @@ td.sourceCode { padding-left: 5px; }
 .il { color: #009999 } /* Literal.Number.Integer.Long */
 
 .bk-canvas { position: relative !important;}
+body {
+    background-color: red;
+}

@@ -30,12 +30,26 @@ SOCIAL = (('You can add links in your config file', '#'),
           ('Another social link', '#'),)
 
 DEFAULT_PAGINATION = 10
+THEME = "pelican-themes/pelican-hss"
+CSS_FILE = "main.css"
+STATIC_PATHS = [
+    "images/",
+    "modern_2_method_chaining_files/",
+    "Indexes_files/"
+    "modern_2_method_chaining_files/",
+    "modern_4_perforamnace_files/",
+    "modern_5_tidy_files/",
+    "modern_6_visualization_files/",
+    "modern_7_timeseries_files/",
+]
 
 # Uncomment following line if you want document-relative URLs when developing
+PLUGIN_PATHS = [
+    'pelican-plugins'
+]
 PLUGINS = [
     # 'pandoc_reader',  # waiting on https://github.com/liob/pandoc_reader/pull/4
     'pelican-yaml-metadata',
+    'render_math',
 ]
-CSS_FILE = "main.css"
-THEME = "pelican-themes/pelican-hss"
 RELATIVE_URLS = True
