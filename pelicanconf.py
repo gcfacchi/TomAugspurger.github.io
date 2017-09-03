@@ -19,8 +19,7 @@ TRANSLATION_FEED_ATOM = None
 AUTHOR_FEED_ATOM = None
 AUTHOR_FEED_RSS = None
 
-SOCIAL = (('You can add links in your config file', '#'),
-          ('Another social link', '#'),)
+DISPLAY_PAGES_ON_MENU = True
 
 DEFAULT_PAGINATION = 10
 THEME = "pelican-themes/pelican-hss"
