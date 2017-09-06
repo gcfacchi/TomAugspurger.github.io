@@ -1,6 +1,7 @@
 ---
 title: "Modern Pandas (Part 4): Performance"
 date: "2016-04-08"
+slug: "modern-4-performance"
 ---
 
 ---

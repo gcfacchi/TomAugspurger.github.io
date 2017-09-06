@@ -1,6 +1,7 @@
 ---
 title: "Modern Pandas (Part 6): Visualization"
 date: "2016-04-28"
+slug: "modern-6-visualization"
 ---
 
 ---

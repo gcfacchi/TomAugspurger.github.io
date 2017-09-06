@@ -1,6 +1,7 @@
 ---
 title: "Modern Pandas (Part 5): Tidy Data"
 date: "2016-04-22"
+slug: "modern-5-tidy"
 ---
 
 ---

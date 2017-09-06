@@ -1,6 +1,7 @@
 ---
 title: "Modern Panadas (Part 3): Indexes"
 date: "2016-04-11"
+slug: "modern-3-indexes"
 ---
 
 ---

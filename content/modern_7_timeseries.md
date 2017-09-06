@@ -1,7 +1,7 @@
 ---
 title: "Modern Pandas (Part 7): Timeseries"
 date: "2016-05-13"
-slug: "modern-7-timeseries.html"
+slug: "modern-7-timeseries"
 ---
 
 ---
