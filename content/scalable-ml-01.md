@@ -26,15 +26,6 @@ think of are
 These aren't mutually exclusive or exhaustive, but they should serve as a nice
 starting point for our discussion.
 
-## Scaling, with Dask
-
-To quote the dask docs:
-
-> Dask is a flexible parallel computing library for analytic computing.
-
-It may not be immediately obvious why a library for parallel computing should
-also be great for out-of-core *and* distributed computing.
-
 ## Don't forget your Statistics
 
 Statistics is a thing[^*]. Statisticians have thought a lot about things like
