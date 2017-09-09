@@ -24,7 +24,14 @@ think of are
    locally, or on a distributed cluster.
 
 These aren't mutually exclusive or exhaustive, but they should serve as a nice
-starting point for our discussion.
+starting point for our discussion. The extract constraint we're hitting, and the
+tools at our disposal, will guide our strategy for managing the constraints.
+Over the course of the series we'll see how we can
+
+1. Use dask to write code that looks like NumPy and pandas, but operates on
+   larger-than-RAM datasets
+2. Use dask and the asynchronous scheduler to implemented sophisticated machine
+   learning algorithms that are distributed by nature
 
 ## Don't forget your Statistics
 
@@ -56,8 +63,7 @@ more data doesn't really improve the model's performance. At some point the
 learning curve levels off, and you're just wasting energy with those extra
 observations.
 
-Throughout the rest of this series, we'll assume that we're on the
-still-increasing part of the learning curve.
+For today, we'll assume that we're on the flat part of the learning curve.
 
 ## Fit, Predict
 
@@ -67,7 +73,7 @@ for a dataset that's orders of magnitude larger.
 
 To make this concrete, we'll use the (tired, but well-known) New York taxi cabs
 dataset. The goal will be to predict if the passenger tips (but that's *really*
-not the point). We'll train the data on a single month's worth of data, and
+not the point.). We'll train the data on a single month's worth of data, and
 predict on the full dataset[^2].
 
 First, let's load in the first month of data from disk:
@@ -83,7 +89,142 @@ df = pd.read_csv("data/yellow_tripdata_2009-01.csv", dtype=dtype,
 df.head()
 ```
 
-This takes about a minute on my laptop. The dataset has about 14M rows.
+<table>
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>vendor_name</th>
+      <th>Trip_Pickup_DateTime</th>
+      <th>Trip_Dropoff_DateTime</th>
+      <th>Passenger_Count</th>
+      <th>Trip_Distance</th>
+      <th>Start_Lon</th>
+      <th>Start_Lat</th>
+      <th>Rate_Code</th>
+      <th>store_and_forward</th>
+      <th>End_Lon</th>
+      <th>End_Lat</th>
+      <th>Payment_Type</th>
+      <th>Fare_Amt</th>
+      <th>surcharge</th>
+      <th>mta_tax</th>
+      <th>Tip_Amt</th>
+      <th>Tolls_Amt</th>
+      <th>Total_Amt</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>VTS</td>
+      <td>2009-01-04 02:52:00</td>
+      <td>2009-01-04 03:02:00</td>
+      <td>1</td>
+      <td>2.63</td>
+      <td>-73.991957</td>
+      <td>40.721567</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>-73.993803</td>
+      <td>40.695922</td>
+      <td>CASH</td>
+      <td>8.9</td>
+      <td>0.5</td>
+      <td>NaN</td>
+      <td>0.00</td>
+      <td>0.0</td>
+      <td>9.40</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>VTS</td>
+      <td>2009-01-04 03:31:00</td>
+      <td>2009-01-04 03:38:00</td>
+      <td>3</td>
+      <td>4.55</td>
+      <td>-73.982102</td>
+      <td>40.736290</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>-73.955850</td>
+      <td>40.768030</td>
+      <td>Credit</td>
+      <td>12.1</td>
+      <td>0.5</td>
+      <td>NaN</td>
+      <td>2.00</td>
+      <td>0.0</td>
+      <td>14.60</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>VTS</td>
+      <td>2009-01-03 15:43:00</td>
+      <td>2009-01-03 15:57:00</td>
+      <td>5</td>
+      <td>10.35</td>
+      <td>-74.002587</td>
+      <td>40.739748</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>-73.869983</td>
+      <td>40.770225</td>
+      <td>Credit</td>
+      <td>23.7</td>
+      <td>0.0</td>
+      <td>NaN</td>
+      <td>4.74</td>
+      <td>0.0</td>
+      <td>28.44</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>DDS</td>
+      <td>2009-01-01 20:52:58</td>
+      <td>2009-01-01 21:14:00</td>
+      <td>1</td>
+      <td>5.00</td>
+      <td>-73.974267</td>
+      <td>40.790955</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>-73.996558</td>
+      <td>40.731849</td>
+      <td>CREDIT</td>
+      <td>14.9</td>
+      <td>0.5</td>
+      <td>NaN</td>
+      <td>3.05</td>
+      <td>0.0</td>
+      <td>18.45</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>DDS</td>
+      <td>2009-01-24 16:18:23</td>
+      <td>2009-01-24 16:24:56</td>
+      <td>1</td>
+      <td>0.40</td>
+      <td>-74.001580</td>
+      <td>40.719382</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>-74.008378</td>
+      <td>40.720350</td>
+      <td>CASH</td>
+      <td>3.7</td>
+      <td>0.0</td>
+      <td>NaN</td>
+      <td>0.00</td>
+      <td>0.0</td>
+      <td>3.70</td>
+    </tr>
+  </tbody>
+</table>
+
+
+This takes about a minute on my laptop. The dataset has about 14M rows and fits
+comfortably into RAM.
 
 ```python
 X = df.drop("Tip_Amt", axis=1)
@@ -352,49 +493,39 @@ X = df.drop("Tip_Amt", axis=1)
 y = df['Tip_Amt'] > 0
 ```
 
-to load the data, and
+to load the data. Computing the predictions is identical:
 
 
 ```python
 yhat = X.map_partitions(lambda x: pd.Series(pipe.predict_proba(x)[:, 1], name='yhat'),
                         meta=('yhat', 'f8'))
+```
+
+And saving the data (say to S3) might look like
+
+```python
 yhat.to_parquet("s3://bucket/predictions.parq")
 ```
 
-To compute and store it. The loading took about 4 minutes on the cluster, the
-predict about 10 seconds, and the writing about 1 minute. Not bad overall.
+The loading took about 4 minutes on the cluster, the predict about 10 seconds,
+and the writing about 1 minute. Not bad overall.
 
----
+## Wrapup
 
-Scratch material to find a home for:
+Today, we went into detail on what's probably the first scaling problem you'll
+hit with scikit-learn: you can train your dataset in-memory, but you have to
+predict on a much larger dataset. We saw that the existing tools handle this
+case quite well. For training, we followed best-practices and did everything
+inside a `Pipeline` object. For predicting, we used `dask` to write regular
+pandas code that worked out-of-core on my laptop or on a distributed cluster.
 
-## Axes, for Scale
+If this topic interests you, you should watch [this talk](scaling sklearn) by
+[Stephen Hoover] on how Civis is scaling scikit-learn.
 
-Dask can "scale out" in a couple dimensions. In 
-I've found it use it useful to mentally bucket things into three groups:
-
-1. out-of-core
-2. parallel
-3. distributed
-
-First, parallelism. In the goal of "minimize some objective function", there are
-many opportunities to parallelize computation. At the highest-level, we may be
-using some kind grid search or ensemble method, which have embarrassing
-parallelism baked into them. We attempt two values of a hyper-parameter at the
-same time. A dask-powered machine learning library should interact well with
-libraries like [auto-sklearn] and [tpot] that use this high-level parallelism.
-
-Algorithms, too, can have parallelism.
-
-Finally, the low-level optimizers can work in parallel too.
-
-These various levels provides opportunities, but raise the specter *nested
-parallelism*.
-
-## Existing Landscape
-
-Scikit-learn offers a a ``partial_fit`` API for out-of-core machine learning.
-This should probably be your first stop when attempting to scale out a model.
+In future posts we'll dig into how dask can speed up your existing pipelines by
+executing them in parallel, scikit-learn's out of core API for when your
+training dataset doesn't fit in memory, and how you can use dask to implement
+distributed machine learning algorithms.
 
 [dask]: https://dask.pydata.org
 [learning curve]: http://scikit-learn.org/stable/auto_examples/model_selection/plot_learning_curve.html
@@ -404,6 +535,8 @@ This should probably be your first stop when attempting to scale out a model.
 [pipelines-blog]: http://zacstewart.com/2014/08/05/pipelines-of-featureunions-of-pipelines.html
 [pipelines-pandas]: https://www.youtube.com/watch?v=KLPtEBokqQ0
 [FunctionTransformer]: http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.FunctionTransformer.html
+[scaling sklearn]: https://www.youtube.com/watch?v=KqKEttfQ_hE
+[Stephen Hoover]: https://twitter.com/stephenactual?lang=en
 
 [^*]: p < .05
 [^2]: This is a bad example, since there could be a time-trend or seasonality to
