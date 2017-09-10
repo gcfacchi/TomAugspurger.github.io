@@ -253,6 +253,11 @@ Incidentally, my [`CategoricalDtype` pull
 request](https://github.com/pandas-dev/pandas/pull/16015) will make this type of
 operation a bit easier to express.
 
+We need to convert to `CategoricalDtype` so that we can call `get_dummies` later
+on without worrying about missing or extra categories in a subset of the data
+throwing off our linear algebra (See my [talk][pipelines-pandas] for more
+details).
+
 Finally, we'd like to scale a subset of the data. Scikit-learn has a
 `StandardScaler`, which we'll mimic here, to just operate on a subset of the
 columns.
