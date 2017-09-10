@@ -41,11 +41,12 @@ ORDER BY random()
 LIMIT 10000;
 ```
 
-and fit your model on a (representative) subset of your data. The tricky thing
-is selecting how large your sample should be. The "correct" value depends on the
-complexity of your learning task, the complexity of your model, and the nature
-of your data. The best you can do here is think carefully about your problem,
-and to plot the [learning curve].
+and fit your model on a (representative) subset of your data. *You may not need
+distributed machine learning*. The tricky thing is selecting how large your
+sample should be. The "correct" value depends on the complexity of your learning
+task, the complexity of your model, and the nature of your data. The best you
+can do here is think carefully about your problem, and to plot the [learning
+curve].
 
 ![scikit-learn](http://scikit-learn.org/stable/_images/sphx_glr_plot_learning_curve_001.png)
 
