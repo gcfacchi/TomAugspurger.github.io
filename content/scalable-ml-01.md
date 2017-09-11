@@ -5,10 +5,13 @@ slug: scalable-ml-01
 status: draft
 ---
 
-The [dask] project is interested in scaling the scientific python ecosystem to
-larger datasets. My current focus is on out-of-core, parallel, and distributed
-machine learning. This series will introduce those concepts, explore what we
-have available today, and track the community's efforts to push the boundaries.
+*This work is supported by [Anaconda Inc.] and the Data Driven Discovery
+Initiative from the [Moore Foundation].*
+
+Anaconda is interested in scaling the scientific python ecosystem. My current
+focus is on out-of-core, parallel, and distributed machine learning. This series
+of posts will introduce those concepts, explore what we have available today,
+and track the community's efforts to push the boundaries.
 
 ## Constraints
 
@@ -19,19 +22,25 @@ are
 1. I'm constrained by size: I can't fit my model on my entire dataset using my
    laptop. I'd like to scale out by adopting algorithms that work in batches
    locally, or on a distributed cluster.
-2. I'm constrained by time: I'd like to fit more models on my dataset in a given
-   amount of time. I'd like to scale out by fitting more models in parallel,
-   either on my laptop by using more cores, or on a cluster.
+2. I'm constrained by time: I'd like to fit more models (think hyper-parameter
+   optimization or ensemble learning) on my dataset in a given amount of time.
+   I'd like to scale out by fitting more models in parallel, either on my laptop
+   by using more cores, or on a cluster.
 
 These aren't mutually exclusive or exhaustive, but they should serve as a nice
-guide for our discussion. I'll be showing where the usual pandas + scikit-learn
-for in-memory analytics workflow breaks down, and offering solutions (some of
-which don't exist as I write this).
+framework for our discussion. I'll be showing where the usual pandas +
+scikit-learn for in-memory analytics workflow breaks down, and offer some
+solutions for scaling out to larger problems.
+
+This post will focus on cases where your training dataset fits in memory, but
+you must predict on a dataset that's larger than memory. Later posts will
+explore into parallel, out-of-core, and distributed training of machine learning
+models.
 
 ## Don't forget your Statistics
 
 Statistics is a thing[^*]. Statisticians have thought a lot about things like
-sampling, and the variance of estimators. So it's worth stating up front that
+sampling and the variance of estimators. So it's worth stating up front that
 you may be able to just
 
 ```sql
@@ -45,7 +54,7 @@ and fit your model on a (representative) subset of your data. *You may not need
 distributed machine learning*. The tricky thing is selecting how large your
 sample should be. The "correct" value depends on the complexity of your learning
 task, the complexity of your model, and the nature of your data. The best you
-can do here is think carefully about your problem, and to plot the [learning
+can do here is think carefully about your problem and to plot the [learning
 curve].
 
 ![scikit-learn](http://scikit-learn.org/stable/_images/sphx_glr_plot_learning_curve_001.png)
@@ -56,10 +65,10 @@ curve].
 
 As usual, the scikit-learn developers do a great job explaining the concept in
 addition to providing a great library. I encourage you to follow [that
-link][learning curve]. This gist is that, for some models on some datasets
-anyways, training on additional data past a point doesn't improve the model's
-performance. At some point the learning curve levels off and you're just wasting
-time and money training on those extra observations.
+link][learning curve]. This gist is that -- for some models on some datasets --
+training the model on more observations doesn't improve performance. At some
+point the learning curve levels off and you're just wasting time and money
+training on those extra observations.
 
 For today, we'll assume that we're on the flat part of the learning curve. Later
 in the series we'll explore cases where we run out of RAM before the learning
@@ -68,17 +77,19 @@ curve levels off.
 ## Fit, Predict
 
 In my experience, the first place I bump into RAM constraints is when I have a
-manageable training dataset to fit the model on, but I have to make predictions
-for a dataset that's orders of magnitude larger. In these cases, I fit my model
-like normal, and predict in an out-of-core fashion. We'll see how dask allows us
-to write normal-looking code, so we don't have to worry about writing the
-batching code ourself.
+my training dataset fits in memory, but I have to make predictions for a dataset
+that's orders of magnitude larger. In these cases, I fit my model like normal,
+and do my predictions out-of-core (without reading the full dataset into memory
+at once).
 
-To make this concrete, we'll use the (tried and true) New York taxi cabs
-dataset. The goal will be to predict if the passenger tips (but that's *really*
-not the point. The point is to explore a space here). We'll train the data on a
-single month's worth of data (which fits in my laptop's RAM), and predict on the
-full dataset[^2].
+We'll see that the training side is completely normal (since everything fits in
+RAM). We'll see that [dask] let's us write write normal-looking pandas and NumPy
+code, so we don't have to worry about writing the batching code ourself.
+
+To make this concrete, we'll use the (tried and true) New York City taxi
+dataset. The goal will be to predict if the passenger tips. We'll train the data
+on a single month's worth of data (which fits in my laptop's RAM), and predict
+on the full dataset[^2].
 
 First, let's load in the first month of data from disk:
 
@@ -124,40 +135,100 @@ df.head()
   <td>3.70</td> </tr> </tbody> </table>
 
 
-This takes about a minute on my laptop. The dataset has about 14M rows. Like I
-said, the training step is going to be completely normal. We'll do the usual
-train-test split, followed by some totally normal data pre-processing:
+The January 2009 file has about 14M rows, and pandas takes about a minute to
+read the CSV into memory. Like I said, the training step is going to be
+completely normal. We'll do the usual train-test split:
 
 ```python
 X = df.drop("Tip_Amt", axis=1)
 y = df['Tip_Amt'] > 0
 
 X_train, X_test, y_train, y_test = train_test_split(X, y)
+
+print("Train:", len(X_train))
+print("Test: ", len(X_test))
 ```
 
+    Train: 10569309
+    Test:  3523104
+
 This isn't a perfectly clean dataset, which is nice because it gives us a chance
-to demonstrate some of pandas' pre-processing prowess, before we hand the data
-of to scikit-learn to fit the model. Since we're operating with scale in mind,
-we'll be extremely cautious to perform *all* the data transformations inside a
-`Pipeline`. This has many benefits, but the main one for our purpose today is
-that it packages our entire task into a single python object. Later on, our
-`predict` step will be a single function call.
+to demonstrate some pandas' pre-processing prowess, before we hand the data
+of to scikit-learn to fit the model.
+
+## Aside on Pipelines
+
+The first time you're introduced to scikit-learn, you'll typically be shown how
+you pass two NumPy arrays `X` and `y` straight into an estimator.
+
+```python
+from sklearn.linear_model import LinearRegression
+
+est = LinearRegression()
+est.fit(X, y)
+```
+
+Eventually, you might want to use some of scikit-learn's pre-processing methods.
+For example, we might impute missing values with the median and normalize the
+data before handing it off to `LinearRegression`. You could do this "by hand":
 
 
 ```python
+from sklearn.preprocessing import Imputer, StandardScaler
+
+imputer = Imputer(strategy='median')
+X_filled = imputer.fit_transform(X, y)
+
+scaler = StandardScaler()
+X_scaled = X_scaler.fit_transform(X_filled, y)
+
+est = LinearRegression()
+est.fit(X_scaled, y)
+```
+
+We set up each step, and manually pass the data through: `X -> X_filled ->
+X_scaled`.
+
+The downside of this approach is that we now have to remember which
+pre-processing steps we did, and in what order. The pipeline from raw data to
+fit model is spread across multiple python objects. A better approach is to use
+scikit-learn's `Pipeline` object. These have many benefits but the main one for
+our purpose today is that it packages our entire task into a single python
+object. Later on, our `predict` step will be a single function call, which makes
+scaling out to the entire dataset extremely convenient.
+
+The pipeline version is
+
+```python
 from sklearn.pipeline import make_pipeline
+
+pipe = make_pipeline(
+    Imputer(strategy='median'),
+    StandardScaler(),
+    LinearRegression()
+)
+pipe.fit(X, y)
+```
+
+Each step in the pipeline implements the `fit`, `transform`, and `fit_transform`
+methods. Scikit-learn takes care of calling each and shepherding the data
+through the various transforms, and finally to the estimator at the end.
+
+If you want more information on `Pipeline`s, check out the [scikit-learn
+docs][pipelines-docs], [this blog][pipelines-blog] post, and my talk from
+[PyData Chicago 2016][pipelines-pandas]. We'll be implementing some custom ones,
+which is *not* the point of this post. Don't get lost in the weeds here, I only
+include this section for completeness.
+
+```python
+from sklearn.pipeline import make_pipeline
+# We'll use FunctionTransformer for simple transforms
 from sklearn.preprocessing import FunctionTransformer
+# TransformerMixin gives us fit_transform for free
 from sklearn.base import TransformerMixin
 ```
 
-If you're unfamiliar with pipelines, check out the [scikit-learn
-docs][pipelines-docs], [this blog][pipelines-blog] post, and my talk from
-[PyData Chicago 2016][pipelines-pandas]. The short version: a pipeline consists
-of multiple steps. Each step transforms the data somehow, and the final step is
-a normal `Estimator` like `LogisticRegression`.
-
-I notice that there are some minor differences in the spelling on "Payment
-Type":
+There are some minor differences in the spelling on "Payment Type":
 
 ```python
 df.Payment_Type.cat.categories
@@ -176,7 +247,7 @@ def payment_lowerer(X):
 
 I should note here that I'm using
 [`.assign`](https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.assign.html)
-to update the variables since it's implicitly copies the data. We don't want to
+to update the variables since it implicitly copies the data. We don't want to
 be modifying the caller's data without their consent.
 
 Not all the columns look useful. We could have easily solved this by only
@@ -196,15 +267,15 @@ class ColumnSelector(TransformerMixin):
         return X[self.columns]
 ```
 
-Under the hood, pandas stores `datetimes` like `Trip_Pickup_DateTime` as a
-64-bit integer representing the nanoseconds since some time in the 1600s. If we
-left this untransformed, scikit-learn would happily transform it to its integer
-representation, which *may* not be the most meaningful item to stick in a linear
-model for predicting tips. A better feature might the hour of the day:
+Internally, pandas stores `datetimes` like `Trip_Pickup_DateTime` as a 64-bit
+integer representing the nanoseconds since some time in the 1600s. If we left
+this untransformed, scikit-learn would happily transform that column to its
+integer representation, which *may* not be the most meaningful item to stick in
+a linear model for predicting tips. A better feature might the hour of the day:
 
 ```python
 class HourExtractor(TransformerMixin):
-    "Transform each datetime64 column in `columns` to integer hours"
+    "Transform each datetime in `columns` to integer hour of the day"
     def __init__(self, columns):
         self.columns = columns
 
@@ -217,7 +288,11 @@ class HourExtractor(TransformerMixin):
 ```
 
 Likewise, we'll need to ensure the categorical variables (in a statistical
-sense) are categorical dtype (in a pandas sense).
+sense) are categorical dtype (in a pandas sense). We want categoricals so that
+we can call `get_dummies` later on without worrying about missing or extra
+categories in a subset of the data throwing off our linear algebra (See my
+[talk][pipelines-pandas] for more details).
+
 
 ```python
 class CategoricalEncoder(TransformerMixin):
@@ -249,18 +324,9 @@ class CategoricalEncoder(TransformerMixin):
         return X
 ```
 
-Incidentally, my [`CategoricalDtype` pull
-request](https://github.com/pandas-dev/pandas/pull/16015) will make this type of
-operation a bit easier to express.
-
-We need to convert to `CategoricalDtype` so that we can call `get_dummies` later
-on without worrying about missing or extra categories in a subset of the data
-throwing off our linear algebra (See my [talk][pipelines-pandas] for more
-details).
-
-Finally, we'd like to scale a subset of the data. Scikit-learn has a
-`StandardScaler`, which we'll mimic here, to just operate on a subset of the
-columns.
+Finally, we'd like to normalize the quantitative subset of the data.
+Scikit-learn has a [StandardScaler], which we'll mimic here, to just operate on
+a subset of the columns.
 
 ```python
 class StandardScaler(TransformerMixin):
@@ -279,6 +345,11 @@ class StandardScaler(TransformerMixin):
         X[self.columns] = X[self.columns].sub(self.μs).div(self.σs)
         return X
 ```
+
+Side-note: I'd like to repeat my desire for a library of `Transformers` that
+work well on NumPy arrays, dask arrays, pandas `DataFrame`s and dask dataframes.
+I think that'd be a popular library. Essentially everything we've written could
+go in there and be imported.
 
 Now we can build up the pipeline:
 
@@ -326,10 +397,6 @@ pipe
                penalty='l2', random_state=None, solver='liblinear', tol=0.0001,
                verbose=0, warm_start=False))]
 
-So, all that pipeline scaffolding is a *bit* of extra complexity over
-imperatively updating the data or writing simple functions to transform the
-data. It'll make our lives easier in the `.predict` step later on.
-
 We can fit the pipeline as normal:
 
 ```python
@@ -351,20 +418,19 @@ It turns out people essentially tip if and only if they're paying with a card,
 so this isn't a particularly difficult task. Or perhaps more accurately, tips
 are only *recorded* when someone pays with a card.
 
+## Scaling Out with Dask
 
-## Scaling Out
-
-OK, so we've fit our model and it's been basically normal. Maybe we've been a
+OK, so we've fit our model and it's been basically normal. Maybe we've been
 overly-dogmatic about doing *everything* in a pipeline, but that's just good
 model hygiene anyway.
 
 Now, to scale out to the rest of the dataset. We'll predict the probability of
 tipping for every cab ride in the dataset (bearing in mind that the full dataset
-doesn't fit in my laptop's RAM).
+doesn't fit in my laptop's RAM, so we'll do it out-of-core).
 
 To make things a bit easier we'll use dask, though it isn't strictly necessary
-for this section. It saves us from writing a for loop (big whoop). Additionally,
-we'll be able to reuse this code when we go to scale out to a cluster (that part
+for this section. It saves us from writing a for loop (big whoop). Later on well
+see that we can, reuse this code when we go to scale out to a cluster (that part
 is pretty cool, actually). Dask can scale down to a single laptop, and up to
 thousands of cores.
 
@@ -378,7 +444,9 @@ X = df.drop("Tip_Amt", axis=1)
 ```
 
 `X` is a `dask.dataframe`, which can be mostly be treated as a single dataframe,
-and thought of as a collection of many smaller pandas `DataFrames`.
+and thought of as a collection of many smaller pandas `DataFrames`. `X`, which
+has a single row per ride in 2009, has about 170M rows (compared with the 14M
+for the training dataset).
 
 Since scikit-learn isn't dask-aware, we can't simply call
 `pipe.predict_proba(X)`. At some point, our `dask.dataframe` would be cast to a
@@ -410,8 +478,9 @@ This takes about 9 minutes to finish on my laptop.
 
 If 9 minutes is too long, and you happen to have a cluster sitting around, you
 can repurpose that dask code to run on the [distributed scheduler]. I'll use
-`dask-kubernetes`, to start up a cluster but you may already have access to one
-from your business or institution.
+[dask-kubernetes], to start up a cluster on Google Cloud Platform, but you could
+also use [dask-ec2] for AWS, or [dask-drmaa] or [dask-yarn] if already have
+access to a cluster from your business or institution.
 
 ```python
 dask-kubernetes create scalable-ml
@@ -425,7 +494,7 @@ I wrote a small utility for serializing a scikit-learn model along with some
 metadata about what it was trained on, before dumping it in S3. If you want to
 be fancy, you should watch [this talk](https://www.youtube.com/watch?v=vKU8MWORHP8)
 by [Rob Story](twitter.com/oceankidbilly) on how Stripe handles these things
-(it's a bit more sophisticated that my "dump it on S3" script).
+(it's a bit more sophisticated than my "dump it on S3" script).
 
 For this blog post, "shipping it to prod" consists of a `joblib.dump(pipe,
 "taxi-model.pkl")` on our laptop, and copying it to somewhere the cluster can
@@ -442,8 +511,8 @@ c = Client('dask-scheduler:8786')
 
 Depending on how your cluster is set up, specifically with respect to having a
 shared-file-system or not, the rest of the code is more-or-less identical. If
-we're using S3 or gcfs as our shared file system, we'd modify the loading code
-to read from S3, rather than our local hard drive:
+we're using S3 or Google Cloud Storage as our shared file system, we'd modify
+the loading code to read from S3, rather than our local hard drive:
 
 ```python
 df = dd.read_csv("s3://bucket/yellow_tripdata_2009*.csv",
@@ -500,17 +569,25 @@ being thrown into. You can reach me on Twitter
 [@TomAugspurger](https://twitter.com/TomAugspurger) or by email at
 <mailto:tom.w.augspurger@gmail.com>. Thanks for reading!
 
+[Anaconda Inc.]: https://www.anaconda.com/
+[Moore Foundation]: https://www.moore.org/
+
 [dask]: https://dask.pydata.org
+[dask-ec2]: https://github.com/dask/dask-ec2
+[dask-drmaa]: https://github.com/dask/dask-drmaa
+[dask-yarn]: https://github.com/dask/dask-yarn
+[dask-kubernetes]: https://github.com/dask/dask-kubernetes
+[distributed scheduler]: http://distributed.readthedocs.io/en/latest/
+
 [learning curve]: http://scikit-learn.org/stable/auto_examples/model_selection/plot_learning_curve.html
-[tpot]: http://rhiever.github.io/tpot/
-[auto-sklearn]: http://automl.github.io/auto-sklearn/
+[StandardScaler]: http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html
+[FunctionTransformer]: http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.FunctionTransformer.html
 [pipelines-docs]: http://scikit-learn.org/stable/modules/pipeline.html#pipeline
 [pipelines-blog]: http://zacstewart.com/2014/08/05/pipelines-of-featureunions-of-pipelines.html
 [pipelines-pandas]: https://www.youtube.com/watch?v=KLPtEBokqQ0
-[FunctionTransformer]: http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.FunctionTransformer.html
 [scaling sklearn]: https://www.youtube.com/watch?v=KqKEttfQ_hE
+
 [Stephen Hoover]: https://twitter.com/stephenactual
-[distributed scheduler]: http://distributed.readthedocs.io/en/latest/
 
 [^*]: p < .05
 [^2]: This is a bad example, since there could be a time-trend or seasonality to
