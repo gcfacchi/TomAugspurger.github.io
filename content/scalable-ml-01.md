@@ -19,20 +19,21 @@ I am (or was, anyway) an economist, and economists like to think in terms of
 constraints. How are we constrained by scale? The two main ones I can think of
 are
 
-1. I'm constrained by size: I can't fit my model on my entire dataset using my
-   laptop. I'd like to scale out by adopting algorithms that work in batches
-   locally, or on a distributed cluster.
-2. I'm constrained by time: I'd like to fit more models (think hyper-parameter
-   optimization or ensemble learning) on my dataset in a given amount of time.
-   I'd like to scale out by fitting more models in parallel, either on my laptop
-   by using more cores, or on a cluster.
+1. **I'm constrained by size**: My training dataset fits in RAM, but I have to
+   predict for a much larger dataset. Or, my training dataset doesn't even fit
+   in RAM. *I'd like to scale out by adopting algorithms that work in batches
+   locally, or on a distributed cluster.*
+2. **I'm constrained by time**: I'd like to fit more models (think
+   hyper-parameter optimization or ensemble learning) on my dataset in a given
+   amount of time. *I'd like to scale out by fitting more models in parallel,
+   either on my laptop by using more cores, or on a cluster.*
 
 These aren't mutually exclusive or exhaustive, but they should serve as a nice
 framework for our discussion. I'll be showing where the usual pandas +
 scikit-learn for in-memory analytics workflow breaks down, and offer some
 solutions for scaling out to larger problems.
 
-This post will focus on cases where your training dataset fits in memory, but
+This post will focus on cases where your *training* dataset fits in memory, but
 you must predict on a dataset that's larger than memory. Later posts will
 explore into parallel, out-of-core, and distributed training of machine learning
 models.
@@ -65,9 +66,9 @@ curve].
 
 As usual, the scikit-learn developers do a great job explaining the concept in
 addition to providing a great library. I encourage you to follow [that
-link][learning curve]. This gist is that -- for some models on some datasets --
-training the model on more observations doesn't improve performance. At some
-point the learning curve levels off and you're just wasting time and money
+link][learning curve]. This gist is that—for some models on some
+datasets—training the model on more observations doesn't improve performance. At
+some point the learning curve levels off and you're just wasting time and money
 training on those extra observations.
 
 For today, we'll assume that we're on the flat part of the learning curve. Later
@@ -76,22 +77,22 @@ curve levels off.
 
 ## Fit, Predict
 
-In my experience, the first place I bump into RAM constraints is when I have a
-my training dataset fits in memory, but I have to make predictions for a dataset
+In my experience, the first place I bump into RAM constraints is when my
+training dataset fits in memory, but I have to make predictions for a dataset
 that's orders of magnitude larger. In these cases, I fit my model like normal,
 and do my predictions out-of-core (without reading the full dataset into memory
 at once).
 
 We'll see that the training side is completely normal (since everything fits in
-RAM). We'll see that [dask] let's us write write normal-looking pandas and NumPy
-code, so we don't have to worry about writing the batching code ourself.
+RAM). We'll see that [dask] let's us write normal-looking pandas and NumPy code,
+so we don't have to worry about writing the batching code ourself.
 
 To make this concrete, we'll use the (tried and true) New York City taxi
-dataset. The goal will be to predict if the passenger tips. We'll train the data
-on a single month's worth of data (which fits in my laptop's RAM), and predict
-on the full dataset[^2].
+dataset. The goal will be to predict if the passenger leaves a tip. We'll train
+the model on a single month's worth of data (which fits in my laptop's RAM), and
+predict on the full dataset[^2].
 
-First, let's load in the first month of data from disk:
+Let's load in the first month of data from disk:
 
 ```python
 dtype = {
@@ -136,8 +137,7 @@ df.head()
 
 
 The January 2009 file has about 14M rows, and pandas takes about a minute to
-read the CSV into memory. Like I said, the training step is going to be
-completely normal. We'll do the usual train-test split:
+read the CSV into memory. We'll do the usual train-test split:
 
 ```python
 X = df.drop("Tip_Amt", axis=1)
@@ -152,14 +152,11 @@ print("Test: ", len(X_test))
     Train: 10569309
     Test:  3523104
 
-This isn't a perfectly clean dataset, which is nice because it gives us a chance
-to demonstrate some pandas' pre-processing prowess, before we hand the data
-of to scikit-learn to fit the model.
-
 ## Aside on Pipelines
 
 The first time you're introduced to scikit-learn, you'll typically be shown how
-you pass two NumPy arrays `X` and `y` straight into an estimator.
+you pass two NumPy arrays `X` and `y` straight into an estimator's `.fit`
+method.
 
 ```python
 from sklearn.linear_model import LinearRegression
@@ -192,12 +189,7 @@ X_scaled`.
 The downside of this approach is that we now have to remember which
 pre-processing steps we did, and in what order. The pipeline from raw data to
 fit model is spread across multiple python objects. A better approach is to use
-scikit-learn's `Pipeline` object. These have many benefits but the main one for
-our purpose today is that it packages our entire task into a single python
-object. Later on, our `predict` step will be a single function call, which makes
-scaling out to the entire dataset extremely convenient.
-
-The pipeline version is
+scikit-learn's `Pipeline` object.
 
 ```python
 from sklearn.pipeline import make_pipeline
@@ -211,14 +203,24 @@ pipe.fit(X, y)
 ```
 
 Each step in the pipeline implements the `fit`, `transform`, and `fit_transform`
-methods. Scikit-learn takes care of calling each and shepherding the data
-through the various transforms, and finally to the estimator at the end.
+methods. Scikit-learn takes care of shepherding the data through the various
+transforms, and finally to the estimator at the end. Pipelines have many
+benefits but the main one for our purpose today is that it packages our entire
+task into a single python object. Later on, our `predict` step will be a single
+function call, which makes scaling out to the entire dataset extremely
+convenient.
 
 If you want more information on `Pipeline`s, check out the [scikit-learn
 docs][pipelines-docs], [this blog][pipelines-blog] post, and my talk from
 [PyData Chicago 2016][pipelines-pandas]. We'll be implementing some custom ones,
 which is *not* the point of this post. Don't get lost in the weeds here, I only
 include this section for completeness.
+
+## Our Pipeline
+
+This isn't a perfectly clean dataset, which is nice because it gives us a chance
+to demonstrate some pandas' pre-processing prowess, before we hand the data
+of to scikit-learn to fit the model.
 
 ```python
 from sklearn.pipeline import make_pipeline
@@ -270,7 +272,7 @@ class ColumnSelector(TransformerMixin):
 Internally, pandas stores `datetimes` like `Trip_Pickup_DateTime` as a 64-bit
 integer representing the nanoseconds since some time in the 1600s. If we left
 this untransformed, scikit-learn would happily transform that column to its
-integer representation, which *may* not be the most meaningful item to stick in
+integer representation, which may not be the most meaningful item to stick in
 a linear model for predicting tips. A better feature might the hour of the day:
 
 ```python
@@ -443,14 +445,13 @@ df = dd.read_csv("data/*.csv", dtype=dtype,
 X = df.drop("Tip_Amt", axis=1)
 ```
 
-`X` is a `dask.dataframe`, which can be mostly be treated as a single dataframe,
-and thought of as a collection of many smaller pandas `DataFrames`. `X`, which
-has a single row per ride in 2009, has about 170M rows (compared with the 14M
-for the training dataset).
+`X` is a `dask.dataframe`, which can be mostly be treated like a pandas
+dataframe (internally, operations are done on many smaller dataframes). `X` has
+about 170M rows (compared with the 14M for the training dataset).
 
 Since scikit-learn isn't dask-aware, we can't simply call
 `pipe.predict_proba(X)`. At some point, our `dask.dataframe` would be cast to a
-`numpy.ndarray`, and our memory would blow up. Fortunately, dask has a some nice
+`numpy.ndarray`, and our memory would blow up. Fortunately, dask has some nice
 little escape hatches for dealing with functions that know how to operate on
 NumPy arrays, but not dask objects. In this case, we'll use `map_partitions`.
 
@@ -466,7 +467,7 @@ together the result (though we provide a hint with the `meta` keyword, to say
 that it's a `Series` with name `yhat` and dtype `f8`).
 
 Now we can write it out to disk (using parquet rather than CSV, because CSVs are
-evil)
+evil).
 
 ```python
 yhat.to_frame().to_parquet("data/predictions.parq")
@@ -512,7 +513,7 @@ c = Client('dask-scheduler:8786')
 Depending on how your cluster is set up, specifically with respect to having a
 shared-file-system or not, the rest of the code is more-or-less identical. If
 we're using S3 or Google Cloud Storage as our shared file system, we'd modify
-the loading code to read from S3, rather than our local hard drive:
+the loading code to read from S3 or GCS, rather than our local hard drive:
 
 ```python
 df = dd.read_csv("s3://bucket/yellow_tripdata_2009*.csv",
