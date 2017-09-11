@@ -553,8 +553,8 @@ followed best-practices and did everything inside a `Pipeline` object. For
 predicting, we used `dask` to write regular pandas code that worked out-of-core
 on my laptop or on a distributed cluster.
 
-If this topic interests you, you should watch [this talk](scaling sklearn) by
-[Stephen Hoover] on how Civis is scaling scikit-learn.
+If this topic interests you, you should watch [this talk][civis-scaling-sklearn]
+by [Stephen Hoover] on how Civis is scaling scikit-learn.
 
 In future posts we'll dig into
 
@@ -585,7 +585,7 @@ being thrown into. You can reach me on Twitter
 [pipelines-docs]: http://scikit-learn.org/stable/modules/pipeline.html#pipeline
 [pipelines-blog]: http://zacstewart.com/2014/08/05/pipelines-of-featureunions-of-pipelines.html
 [pipelines-pandas]: https://www.youtube.com/watch?v=KLPtEBokqQ0
-[scaling sklearn]: https://www.youtube.com/watch?v=KqKEttfQ_hE
+[civis-scaling-sklearn]: https://www.youtube.com/watch?v=KqKEttfQ_hE
 
 [Stephen Hoover]: https://twitter.com/stephenactual
 
