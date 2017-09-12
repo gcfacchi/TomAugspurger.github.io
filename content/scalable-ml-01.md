@@ -493,7 +493,7 @@ different procedures and infrastructure around persisting models. At my old job,
 I wrote a small utility for serializing a scikit-learn model along with some
 metadata about what it was trained on, before dumping it in S3. If you want to
 be fancy, you should watch [this talk](https://www.youtube.com/watch?v=vKU8MWORHP8)
-by [Rob Story](twitter.com/oceankidbilly) on how Stripe handles these things
+by [Rob Story](https://twitter.com/oceankidbilly) on how Stripe handles these things
 (it's a bit more sophisticated than my "dump it on S3" script).
 
 For this blog post, "shipping it to prod" consists of a `joblib.dump(pipe,
