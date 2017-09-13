@@ -8,13 +8,13 @@ slug: "modern-7-timeseries"
 
 This is part 7 in my series on writing modern idiomatic pandas.
 
-- [Modern Pandas](modern-1-intro.md)
-- [Method Chaining](method-chaining.md)
-- [Indexes](modern-3-indexes.md)
-- [Fast Pandas](modern-4-performance.md)
-- [Tidy Data](modern-5-tidy.md)
-- [Visualization](modern-6-visualization.md)
-- [Time Series](modern-7-timeseries.md)
+- [Modern Pandas](modern-1-intro)
+- [Method Chaining](method-chaining)
+- [Indexes](modern-3-indexes)
+- [Fast Pandas](modern-4-performance)
+- [Tidy Data](modern-5-tidy)
+- [Visualization](modern-6-visualization)
+- [Time Series](modern-7-timeseries)
 
 ---
 
