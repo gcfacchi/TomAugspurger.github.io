@@ -12,6 +12,8 @@ focus is on out-of-core, parallel, and distributed machine learning. This series
 of posts will introduce those concepts, explore what we have available today,
 and track the community's efforts to push the boundaries.
 
+*You can download a Jupyter notebook demonstrating the analysis [here][notebook].*
+
 ## Constraints
 
 I am (or was, anyway) an economist, and economists like to think in terms of
@@ -586,6 +588,7 @@ being thrown into. You can reach me on Twitter
 [pipelines-blog]: http://zacstewart.com/2014/08/05/pipelines-of-featureunions-of-pipelines.html
 [pipelines-pandas]: https://www.youtube.com/watch?v=KLPtEBokqQ0
 [civis-scaling-sklearn]: https://www.youtube.com/watch?v=KqKEttfQ_hE
+[notebook]: https://nbviewer.jupyter.org/gist/TomAugspurger/94ee62127bbc8e20223f97ebd7d29191
 
 [Stephen Hoover]: https://twitter.com/stephenactual
 
