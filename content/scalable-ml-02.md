@@ -4,8 +4,8 @@ date: 2017-09-15
 slug: scalable-ml-interlude-01
 ---
 
-*This work is supported by [Anaconda Inc.] and the Data Driven Discovery
-Initiative from the [Moore Foundation].*
+*This work is supported by [Anaconda Inc.](https://www.anaconda.com/) and the Data Driven Discovery
+Initiative from the [Moore Foundation](https://www.moore.org/).*
 
 This is a bit of an interlude in my series on scalable machine learning, but I
 wanted to collect feedback on an idea I had today. It's less of a "how to" and
