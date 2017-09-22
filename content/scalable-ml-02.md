@@ -1,15 +1,20 @@
 ---
-title: "Scalable Machine Learning (interlude)"
+title: "Scalable Machine Learning (Part 2): Partial Fit"
 date: 2017-09-15
 slug: scalable-ml-interlude-01
 ---
 
-*This work is supported by [Anaconda Inc.](https://www.anaconda.com/) and the Data Driven Discovery
-Initiative from the [Moore Foundation](https://www.moore.org/).*
+*This work is supported by [Anaconda, Inc.](https://www.anaconda.com/) and the
+Data Driven Discovery Initiative from the [Moore Foundation](https://www.moore.org/).*
 
-This is a bit of an interlude in my series on scalable machine learning, but I
-wanted to collect feedback on an idea I had today. It's less of a "how to" and
-more of a "thoughts?".
+This is part two of my series on scalable machine learning.
+
+- [Small Fit, Big Predict](scalable-ml-01)
+- [Scikit-Learn Partial Fit](scalable-ml-02)
+
+You can download a notebook of this post [here][notebook].
+
+---
 
 Scikit-learn supports out-of-core learning (fitting a model on a dataset that
 doesn't fit in RAM), through it's `partial_fit` API. See
@@ -21,13 +26,15 @@ it's learning (the coefficients, for example).
 
 Unfortunately, the `partial_fit` API doesn't play that nicely with my favorite
 part of scikit-learn:
-[pipelines](http://scikit-learn.org/stable/modules/pipeline.html#pipeline). You
-would essentially need every chain in the pipeline to have an out-of-core
-`parital_fit` version, which isn't really feasible. Setting that aside, it
-wouldn't be great for a user, since working with generators of datasets is
-awkward.
+[pipelines](http://scikit-learn.org/stable/modules/pipeline.html#pipeline),
+which we discussed at length in [part 1](scalable-ml-01). You would essentially
+need every step in the pipeline to have an out-of-core `parital_fit` version,
+which isn't really feasible; some algorithms just have to see the entire dataset
+at once. Setting that aside, it wouldn't be great for a user, since working
+with generators of datasets is awkward compared to the expressivity we get from
+pandas and NumPy.
 
-Fortunately, we *have* a great data containers for larger than memory arrays and
+Fortunately, we *have* great data containers for larger than memory arrays and
 dataframes: `dask.array` and `dask.dataframe`. We can
 
 1. Use dask for pre-processing data in an out-of-core manner
@@ -36,154 +43,143 @@ dataframes: `dask.array` and `dask.dataframe`. We can
 
 And all of this can be done in a pipeline. The rest of this post shows how.
 
+## Big Arrays
+
+If you follow along in [companion notebook][notebook], you'll see that I
+generate a dataset, replicate it 100 times, and write the results out to
+parquet. I then read it back in as a pair of `dask.dataframe`s and convert them
+to a pair of `dask.array`s. I'll skip those details to focus on main goal: using
+`sklearn.Pipeline`s on larger-than-memory datasets. Suffice to say, we have a
+function `read` that gives us our big `X` and `y`:
 
 ```python
-from daskml.datasets import make_classification
-from daskml.linear_model import BigSGDClassifier
-
-from sklearn.base import TransformerMixin
-from sklearn.pipeline import make_pipeline
-```
-
-`daskml` is a prototype library where I'm collection these thoughts. It's not
-ready for production (yet).
-
-Let's make an `X` and `y` for classification.
-
-
-```python
-X, y = make_classification(n_samples=10_000, chunks=1_000)
-```
-
-These are dask arrays:
-
-
-```python
+X, y = read()
 X
 ```
 
-
-
-
-    dask.array<array, shape=(10000, 20), dtype=float64, chunksize=(1000, 20)>
-
-
-
-
+    dask.array<concatenate, shape=(100000000, 20), dtype=float64, chunksize=(500000, 20)>
+  
+  
 ```python
 y
 ```
 
+    dask.array<squeeze, shape=(100000000,), dtype=float64, chunksize=(500000,)>
 
 
-
-    dask.array<array, shape=(10000,), dtype=int64, chunksize=(1000,)>
-
-
-
-To demonstrate the idea, we'll have a small pipeline
-
-1. Scale the features by mean and variance
-2. Fit an `SGDClassifer`
-
-Since scikit-learn isn't dask-aware, we'll write our own `StandardScaler`. This
-isn't too many lines of code:
-
+So X is a 100,000,000 x 20 array of floats that we'll use to predict `y`. I
+generated the dataset, so I know that `y` is either 0 or 1. We'll be doing
+classification.
 
 ```python
-class StandardScaler(TransformerMixin):
 
-    def fit(self, X, y=None):
-        self.mean_ = X.mean(0)
-        self.var_ = X.var(0)
-        return self
-
-    def transform(self, X, y=None):
-        return (X - self.mean_) / self.var_
+(X.nbytes + y.nbytes) / 10**9
 ```
 
-And now for the pipeline:
+    16.8
 
+
+My laptop has 16 GB of RAM, and the dataset is 16.8 GB. We can't simply read the
+entire thing into memory. We'll use dask for the preprocessing, and scikit-learn
+for the fitting. To demonstrate the idea, we'll have a small pipeline
+
+1. Scale the features by mean and variance
+2. Fit an SGDClassifer
+
+I've implemented a `daskml.preprocessing.StandardScaler``, using dask, in about
+40 lines of code. This will operate completely in parallel and out-of-core.
+
+I *haven't* implemented a custom `SGDClassifier`, because that'd be much more than
+40 lines of code. I have a small wrapper that will use scikit-learn's
+implementation to provide fit method that operates out-of-core, but not in
+parallel.
+
+```
+from daskml.preprocessing import StandardScaler
+from daskml.linear_model import BigSGDClassifier
+
+from dask.diagnostics import ResourceProfiler, Profiler, ProgressBar
+from sklearn.pipeline import make_pipeline
+```
+
+As a user, the API is the same as `scikit-learn`. Indeed, it *is* just a regular
+`sklearn.pipeline.Pipeline`.
 
 ```python
 pipe = make_pipeline(
     StandardScaler(),
     BigSGDClassifier(classes=[0, 1], max_iter=1000, tol=1e-3, random_state=2),
 )
-
-pipe.fit(X, y)
 ```
 
-
-    Pipeline(memory=None,
-         steps=[('standardscaler', <__main__.StandardScaler object at 0x1137efa20>),
-                ('bigsgdclassifier', BigSGDClassifier(
-                    alpha=0.0001, average=False, class_weight=None,
-                    classes=[0, 1], epsilon=0.1, eta0=0.0, fit_intercept=True,
-                    l1_ratio=0.15, learning_rate='optimal', loss='hinge',
-                    max_iter=1000, n_iter=None, n_jobs=1, penalty='l2', power_t=0.5,
-                    random_state=2, shuffle=True, tol=0.001, verbose=0,
-                    warm_start=False))])
+And fitting is identical as well: `pipe.fit(X, y)`. We'll collect some
+performance metrics as well.
 
 ```python
-pipe.steps[-1][1].coef_
+%%time
+rp = ResourceProfiler()
+p = Profiler()
+
+
+with p, rp:
+    pipe.fit(X, y)
 ```
 
-    array([[ -3.84269726,  -0.37780912,  15.68333536,  -1.31574306,
-              2.70781476,  -2.55583381,  -0.39162044,  -1.18764602,
-              1.74171432,   0.38190678,  -1.95610583,   5.51880009,
-            -10.83082117,  -1.18993518,   1.56220091,   0.65688068,
-            14.64347836,   0.76979726,   1.11516644,  -2.99760032]])
+    CPU times: user 2min 38s, sys: 1min 44s, total: 4min 22s
+    Wall time: 1min 47s
 
+At this point, `pipe` has all the regular methods you would expect, ``predict``,
+``predict_proba``, etc. You can get to the individual attributes like
+``pipe.steps[1][1].coef_``.
 
-Somewhat anticlimatic, I'll admit, but I'm excited about it! We get to write
-NumPy-like code, operate on larger datsets, and use (some) scikit-learn
-estimators, without modify scikit-learn at all!
+One important point to stress here: when we get to the `BigSGDClassifier.fit`
+at the end of the pipeline, everything is done serially. We can see that by
+plotting the `Profiler` we captured up above:
 
-## How?
+![](images/sml-02-fit.png)
 
-The implementation is equally exiting to me. It essentially comes down to two
-methods
+That graph shows the tasks each worker (a core on my laptop) executed over time.
+Towards the start, when we're reading off disk, converting to `dask.array`s, and
+doing the `StandardScaler`, everything is in parallel. Once we get to the
+`BigSGDClassifier`, which is just a simple wrapper around
+`sklearn.linear_model.SGDClassifier`, we lose all our parallelism*.
 
+The predict step *is* done entirely in parallel.
 
 ```python
-import dask.array as da
 
-def _as_blocks(X, y):
-    X_blocks = X.to_delayed().flatten().tolist()
-    y_blocks = y.to_delayed().flatten().tolist()
-    return zip(X_blocks, y_blocks)
+with rp, p:
+    predictions = pipe.predict(X)
+    predictions.to_dask_dataframe(columns='a').to_parquet('predictions.parq')
 
-
-class _BigDataMixin:
-
-    def fit(self, X, y=None):
-        pairs = _as_blocks(X, y)
-        P = X.shape[1]
-
-        for i, (xx, yy) in enumerate(pairs):
-            xx = da.from_delayed(xx, shape=(X.chunks[0][i], P), dtype=X.dtype)
-            yy = da.from_delayed(yy, shape=(y.chunks[0][i],), dtype=y.dtype)
-            self.partial_fit(xx, yy, classes=self.classes)
 ```
 
-`_as_blocks` is a little helper for going from a `dask.array` to a list of `dask.Delayed` objects.
+![](images/sml-02-predict.png)
+
+When I had this idea last week, of feeding blocks of `dask.array` to a
+scikit-learn estimator's `partial_fit` method, I thought it was pretty neat.
+Turns out Matt Rocklin had the idea, and implemented it in dask, two years ago.
+
+Roughly speaking, the implementation is:
 
 
 ```python
-xx, yy = next(_as_blocks(X, y))
-xx, yy
+class BigSGDClassifier(SGDClassifer):
+    ...
+    
+    def fit(self, X, y):
+        # ... some setup
+        for xx, yy in by_blocks(X, y):
+            self.parital_fit(xx, yy)
+        return self
 ```
 
+We iterate over the dask arrays block-wise, and pass it into the estimators
+`parital_fit` method.
 
-    (Delayed(('array-faee43bf99d08c2158b52f3c76cccfdf', 0, 0)),
-     Delayed(('array-0e5a80aa67c1727b5b452eb624c3b30e', 0)))
+Let me know what you think. I'm pretty excited about this because it
+removes some of the friction around using sckit-learn Pipelines with
+out-of-core estimators. I'll be packaging this up in `daskml` to make it more
+usable for the community over the next couple weeks.
 
-
-In the `_BigDataMixin` class (I chuckle every time at that name), we iterate over each of the `xx, yy` pairs. Wd do a `da.from_delayed` dance to get a (small) `dask.Array` that looks array-like enough for NumPy to operate on it. That's what's passed into the `partial_fit` of the class it's mixed in with.
-
-It's important to stress that we don't get any parallelism here. This is entirely sequential. This is more about the user-convenience of getting to use dask arrays for exploring larger-than-memory datasets. We get to use a complex scikit-learn estimator on a `dask.array` in ~20 lines of code. I'll take it for now.
-
-Anyway, let me know what you think. I'm pretty excited about this because it removes some of the friction around using sckit-learn Pipelines with the out-of-core estimators. I'll be packaging this up in `daskml` to make it more usable for the community, but wanted to get some feedback on the idea first.
-
-You can download a notebook demonstrating this [here](http://nbviewer.jupyter.org/gist/TomAugspurger/6306a5eb7389351164801fcbf2945521).
+[notebook]: http://nbviewer.jupyter.org/github/TomAugspurger/scalable-ml/blob/master/partial.ipynb
