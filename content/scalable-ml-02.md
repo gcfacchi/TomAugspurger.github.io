@@ -1,7 +1,7 @@
 ---
 title: "Scalable Machine Learning (Part 2): Partial Fit"
 date: 2017-09-15
-slug: scalable-ml-interlude-01
+slug: scalable-ml-02
 ---
 
 *This work is supported by [Anaconda, Inc.](https://www.anaconda.com/) and the
