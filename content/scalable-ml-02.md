@@ -223,10 +223,9 @@ community over the next couple weeks. If this type of work interests you, please
 reach out on [Twitter](http://twitter.com/TomAugspurger) or by
 [email](tom.w.augspurger@gmail.com). If you're interested in contributing, I
 think a library of basic transformers that operate on NumPy and dask arrays and
-pandas and dask DataFrames would be *extremely* useful. `daskml` may be a good
-home for those, and I could use help in implementing them (I don't think
-scikit-learn would be a good home, since they don't (and shouldn't) depend on
-dask at this point).
+pandas and dask DataFrames would be *extremely* useful. I've started [an
+issue](https://github.com/dask/dask-ml/issues/6) to track this progress.
+Contributions would be extremely welcome.
 
 Next time we'll be going back to smaller datasets. We'll see how dask can help
 us parallelize our work to fit more models in less time.
