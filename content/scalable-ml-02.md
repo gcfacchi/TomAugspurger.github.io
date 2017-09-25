@@ -150,7 +150,6 @@ we get to the `BigSGDClassifier`, which is just a simple wrapper around
 The predict step *is* done entirely in parallel.
 
 ```python
-
 with rp, p:
     predictions = pipe.predict(X)
     predictions.to_dask_dataframe(columns='a').to_parquet('predictions.parq')
@@ -190,10 +189,25 @@ what you would be doing if you were using, say, a generator feed NumPy arrays to
 the `parital_fit` method. Only you can manipulate a `dask.array` like regular
 NumPy array, so things are more convenient.
 
-Let me know what you think. I'm pretty excited about this because it
-removes some of the friction around using sckit-learn Pipelines with
-out-of-core estimators. In [`dask-ml`](https://github.com/dask/dask-ml/), I've
-implemented similar wrappers for
+
+## Some Challenges
+
+For our small pipeline, we had to make two passes over the data. One to fit the
+``StandardScaler`` and one to fit the ``BigSGDClassifier``. In general, with
+this approach, we'll have to make one pass per stage of the pipeline, which
+isn't great. I *think* this is unavoidable with the current design, but I'm
+considering ways around it.
+
+## Recap
+
+We've seen *a* way to use scikit-learn's existing estimators on
+larger-than-memory dask arrays by passing the blocks of a dask array to the
+`partial_fit` method. This enables us to use `Pipeline`s on larger-than-memory
+datasets.
+
+Let me know what you think. I'm pretty excited about this because it removes
+some of the friction around using sckit-learn Pipelines with out-of-core
+estimators. In [`dask-ml`][daskml], I've implemented similar wrappers for
 
 - SGDRegressor
 - PassiveAggressiveClassifier
@@ -203,12 +217,18 @@ implemented similar wrappers for
 - MLPRegressor
 - MiniBatchKMeans
 
-I'll be packaging this up in `daskml` to make it more usable for the community
-over the next couple weeks. If this type of work interests you, please reach out
-on [Twitter](http://twitter.com/TomAugspurger) or by
-[email](tom.w.augspurger@gmail.com).
+I'll be packaging this up in [`daskml`][daskml] to make it more usable for the
+community over the next couple weeks. If this type of work interests you, please
+reach out on [Twitter](http://twitter.com/TomAugspurger) or by
+[email](tom.w.augspurger@gmail.com). If you're interested in contributing, I
+think a library of basic transformers that operate on NumPy and dask arrays and
+pandas and dask DataFrames would be *extremely* useful. `daskml` may be a good
+home for those, and I could use help in implementing them (I don't think
+scikit-learn would be a good home, since they don't (and shouldn't) depend on
+dask at this point).
 
 Next time we'll be going back to smaller datasets. We'll see how dask can help
 us parallelize our work to fit more models in less time.
 
 [notebook]: http://nbviewer.jupyter.org/github/TomAugspurger/scalable-ml/blob/master/partial.ipynb
+[daskml]: https://github.com/dask/dask-ml
