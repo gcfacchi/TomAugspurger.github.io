@@ -138,7 +138,7 @@ One important point to stress here: when we get to the `BigSGDClassifier.fit`
 at the end of the pipeline, everything is done serially. We can see that by
 plotting the `Profiler` we captured up above:
 
-![](images/sml-02-fit.png)
+![Training parallelism](images/sml-02-fit.png)
 
 That graph shows the tasks (the rectangles) each worker (a core on my laptop)
 executed over time. Workers are along the vertical axis, and time is along the
@@ -157,7 +157,7 @@ with rp, p:
 
 ```
 
-![](images/sml-02-predict.png)
+![Predicting parallelism](images/sml-02-predict.png)
 
 That took about 40 seconds, from disk to prediction, and back to disk on 16 GB
 of data, using all 8 cores of my laptop.
