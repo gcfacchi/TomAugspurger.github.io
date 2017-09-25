@@ -31,7 +31,7 @@ part of scikit-learn,
 [pipelines](http://scikit-learn.org/stable/modules/pipeline.html#pipeline),
 which we discussed at length in [part 1](scalable-ml-01). For pipelines to work,
 you would essentially need every step in the pipeline to have an out-of-core
-`parital_fit` version, which isn't really feasible; some algorithms just have to
+`partial_fit` version, which isn't really feasible; some algorithms just have to
 see the entire dataset at once. Setting that aside, it wouldn't be great for a
 user, since working with generators of datasets is awkward compared to the
 expressivity we get from pandas and NumPy.
@@ -179,15 +179,15 @@ class BigSGDClassifier(SGDClassifier):
     def fit(self, X, y):
         # ... some setup
         for xx, yy in by_blocks(X, y):
-            self.parital_fit(xx, yy)
+            self.partial_fit(xx, yy)
         return self
 ```
 
 If you aren't familiar with `dask`, its arrays are composed of many smaller
 NumPy arrays (blocks in the larger dask array). We iterate over the dask arrays
-block-wise, and pass them into the estimators `parital_fit` method. That's exactly
+block-wise, and pass them into the estimators `partial_fit` method. That's exactly
 what you would be doing if you were using, say, a generator feed NumPy arrays to
-the `parital_fit` method. Only you can manipulate a `dask.array` like regular
+the `partial_fit` method. Only you can manipulate a `dask.array` like regular
 NumPy array, so things are more convenient.
 
 
