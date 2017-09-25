@@ -45,3 +45,6 @@ PLUGINS = [
 ]
 RELATIVE_URLS = True
 FEED_RSS = 'feed'
+
+DISQUS_SITENAME = "tomaugspurger"
+GOOGLE_ANALYTICS = "UA-48304175-1"
