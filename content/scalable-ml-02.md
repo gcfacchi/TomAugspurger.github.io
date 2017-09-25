@@ -22,7 +22,9 @@ doesn't fit in RAM), through it's `partial_fit` API. See
 
 The basic idea is that, *for certain estimators*, learning can be done in
 batches. The estimator will see a batch, and then incrementally update whatever
-it's learning (the coefficients, for example).
+it's learning (the coefficients, for example). [This
+link](http://scikit-learn.org/stable/modules/scaling_strategies.html#incremental-learning)
+has a list of the algorithms that implement `partial_fit`.
 
 Unfortunately, the `partial_fit` API doesn't play that nicely with my favorite
 part of scikit-learn,
@@ -46,10 +48,10 @@ of this post shows how.
 
 ## Big Arrays
 
-If you follow along in [companion notebook][notebook], you'll see that I
-generate a dataset, replicate it 100 times, and write the results out to
-disk. I then read it back in as a pair of `dask.dataframe`s and convert them
-to a pair of `dask.array`s. I'll skip those details to focus on main goal: using
+If you follow along in the [companion notebook][notebook], you'll see that I
+generate a dataset, replicate it 100 times, and write the results out to disk. I
+then read it back in as a pair of `dask.dataframe`s and convert them to a pair
+of `dask.array`s. I'll skip those details to focus on main goal: using
 `sklearn.Pipeline`s on larger-than-memory datasets. Suffice to say, we have a
 function `read` that gives us our big `X` and `y`:
 
@@ -68,16 +70,15 @@ y
     dask.array<squeeze, shape=(100000000,), dtype=float64, chunksize=(500000,)>
 
 
-So `X` is a 100,000,000 x 20 array of floats that we'll use to predict `y`. I
-generated the dataset, so I know that `y` is either 0 or 1. We'll be doing
-classification.
+So `X` is a 100,000,000 x 20 array of floats (I have float64s, you're probably
+fine with float32s) that we'll use to predict `y`. I generated the dataset, so I
+know that `y` is either 0 or 1. We'll be doing classification.
 
 ```python
 (X.nbytes + y.nbytes) / 10**9
 ```
 
     16.8
-
 
 My laptop has 16 GB of RAM, and the dataset is 16.8 GB. We can't simply read the
 entire thing into memory. We'll use dask for the preprocessing, and scikit-learn
