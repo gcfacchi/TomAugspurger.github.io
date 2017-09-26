@@ -221,7 +221,7 @@ estimators. In [`dask-ml`][daskml], I've implemented similar wrappers for
 I'll be packaging this up in [`daskml`][daskml] to make it more usable for the
 community over the next couple weeks. If this type of work interests you, please
 reach out on [Twitter](http://twitter.com/TomAugspurger) or by
-[email](tom.w.augspurger@gmail.com). If you're interested in contributing, I
+email at <mailto:tom.w.augspurger@gmail.com>. If you're interested in contributing, I
 think a library of basic transformers that operate on NumPy and dask arrays and
 pandas and dask DataFrames would be *extremely* useful. I've started [an
 issue](https://github.com/dask/dask-ml/issues/6) to track this progress.
