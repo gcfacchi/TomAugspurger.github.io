@@ -87,7 +87,7 @@ for the fitting. We'll have a small pipeline
 1. Scale the features by mean and variance
 2. Fit an SGDClassifier
 
-I've implemented a `daskml.preprocessing.StandardScaler``, using dask, in about
+I've implemented a `daskml.preprocessing.StandardScaler`, using dask, in about
 40 lines of code (see [here](https://github.com/dask/dask-ml/blob/9e85ba282a93c0f62afbe68dabe088fbd59ada40/daskml/preprocessing/data.py#L8)).
 The scaling will be done completely in parallel and completely out-of-core.
 
