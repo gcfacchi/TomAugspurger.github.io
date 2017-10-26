@@ -67,10 +67,10 @@ across a cluster.
   algorithm for the EM step.
 - [Preprocessing](http://dask-ml.readthedocs.io/en/latest/modules/api.html#module-dask_ml.preprocessing):
   These are estimators that can be dropped into scikit-learn Pipelines, but they
-  operate in parallel on dask arrays. They'll work well on datasets in
+  operate in parallel on dask collections. They'll work well on datasets in
   distributed memory, and may be faster for NumPy arrays (depending on the
   overhead from parallelizing, and whether or not the scikit-learn
-  implementation is already parallel.)
+  implementation is already parallel).
   
 ## Help Contribute!
 
@@ -81,7 +81,7 @@ have to think about "where's my data? How do I parallelize this?" Dask does that
 for you.
 
 Have a look at the [issues](https://github.com/dask/dask-ml/issues) or propose a
-new one. I'd love to hear issues that' you've run into when scaling the
+new one. I'd love to hear issues that you've run into when scaling the
 "traditional" scientific python stack out to larger problems.
 
 [docs]: http://dask-ml.readthedocs.io/en/latest/
