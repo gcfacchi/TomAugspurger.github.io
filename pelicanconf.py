@@ -41,6 +41,7 @@ PLUGIN_PATHS = [
 PLUGINS = [
     'pandoc_reader',  # waiting on https://github.com/liob/pandoc_reader/pull/4
     'pelican-yaml-metadata',
+    'pelican_alias',
     # 'render_math',
 ]
 RELATIVE_URLS = True

@@ -2,6 +2,9 @@
 title: Modern Pandas (Part 1)
 date: 2016-03-21
 slug: "modern-1-intro"
+Alias:
+    - "modern-1"
+    - "modern-1.html"
 ---
 
 ---
