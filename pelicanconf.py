@@ -29,7 +29,7 @@ STATIC_PATHS = [
     "modern_2_method_chaining_files/",
     "Indexes_files/"
     "modern_2_method_chaining_files/",
-    "modern_4_perforamnace_files/",
+    "modern_4_performance_files/",
     "modern_5_tidy_files/",
     "modern_6_visualization_files/",
     "modern_7_timeseries_files/",
