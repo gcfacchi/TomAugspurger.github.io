@@ -2,6 +2,7 @@
 title: Easy distributed training with Joblib and `dask.distributed`
 date: 2017-10-26
 slug: distributed-joblib
+status: draft
 ---
 
 Scikit-learn uses [joblib]() for simple parallelism in many places, anywhere you
@@ -159,3 +160,5 @@ This is a elegant way to negotiate a compromise between
 
 After the next joblib release, we'll update scikit-learn to use it in places
 where it currently hardcodes the parallel backend.
+
+#TODO: embed movie of the distributed scheduler.
