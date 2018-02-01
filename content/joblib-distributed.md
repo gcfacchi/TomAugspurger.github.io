@@ -1,39 +1,51 @@
 ---
-title: Easy distributed training with Joblib and `dask.distributed`
+title: Easy distributed training with Joblib and dask
 date: 2017-10-26
 slug: distributed-joblib
 status: draft
 ---
 
-Scikit-learn uses [joblib]() for simple parallelism in many places, anywhere you
-see an ``n_jobs`` keyword. Your estimator may have an embarrassingly parallel
-step internally (fitting each of the trees in a `RandomForest` for example). Or
-your meta-estimator like `GridSearchCV` may try out many combinations of
+This past week, I had a chance to visit some of the scikit-learn developers at
+Inria in Paris. It was a fun and productive week, and I'm thankful to them for
+hosting me and Anaconda for sending me there. This article will talk about some
+improvements we made to improve training scikit-learn models using a cluster.
+
+Scikit-learn uses [joblib](https://pythonhosted.org/joblib/parallel.html) for
+simple parallelism in many places. Anywhere you pass an ``n_jobs`` keyword,
+scikit-learn is internally calling `joblib.Parallel(...)`, and doing a batch of
+work in parallel. The estimator may have an embarrassingly parallel step
+internally (fitting each of the trees in a `RandomForest` for example). Or your
+meta-estimator like `GridSearchCV` may try out many combinations of
 hyper-parameters in parallel.
 
+You can think of `joblib` as a broker between the user and the algorithm author.
+The user comes along and says, "I have `n_jobs` cores, please use them!".
+Scikit-Learn says "I have all these embarrassingly tasks to be run as part of
+fitting this estimator." Joblib accepts the cores from the user and the tasks
+from scikit-learn, and hands the completed tasks back to scikit-learn.
+
 Joblib offers a few "backends" for how to do your parallelism, but they all boil
-down to "does it use many threads, or many processes?"
+down to using many processes versus using many cores.
 
 ## Parallelism in Python
 
-A quick digression on *single-machine* parallelism in Python. We have two main
-choices: multiple threads or multiple processes. We can't say up front that one
-is always better than the other; it unfortunately depends on the specific
-workload. But we do have some general heuristics, that come down to
-serialization overhead and Python's Global Interpreter Lock (GIL).
+A quick digression on *single-machine* parallelism in Python. We can't say up
+front that using threads is always better or worse than using processes.
+Unfortunately the relative performance depends on the specific workload. But we
+do have some general heuristics that come down to serialization overhead and
+Python's Global Interpreter Lock (GIL).
 
-The GIL is part of CPython's (i.e. the C program that interprets and runs your
-Python program). It limits your process so that only one thread is running
-*Python* code at once. Fortunately, much of the numerical Python stack is
-written in C, Cython, or C++, and *may* be able to "release" the GIL. This means
-your "Python" program, which is calling into Cython or C via NumPy or pandas,
-can get real thread-based parallelism without being limited by the GIL. The main
-caveat here is working with string data or Python objects (lists, dicts, sets,
-etc). Since those are touching Python objects, NumPy, pandas, etc. will still
-need to hold the GIL to manipulate them.
+The GIL is part of CPython, the C program that interprets and runs your Python
+program. It limits your Python process so that only one thread is executing
+*Python* at once, defeating your parallelism. Fortunately, much of the numerical
+Python stack is written in C, Cython, C++, Fortran, or numba, and *may* be able
+to release the GIL. This means your "Python" program, which is calling into
+Cython or C via NumPy or pandas, can get real thread-based parallelism without
+being limited by the GIL. The main caveat here that manipulating strings or
+Python objects (lists, dicts, sets, etc) typically requires holding the GIL.
 
-So, if we have the *option* of using threads instead of processes, which do we
-choose? For most numeric / scientific workloads, threads are better than
+So, if we have the *option* of choosing threads or processes, which do we
+want? For most numeric / scientific workloads, threads are better than
 processes because of *shared memory*. Each thread in a thread-pool can view (and
 modify!) the *same* large NumPy array or pandas dataframe. With multiple
 processes, data must be *serialized* between processes (perhaps using pickle).
@@ -41,83 +53,93 @@ For large arrays or dataframes this can be slow, and it may blow up your memory
 if the data a decent fraction of your machine's RAM. You'll have a full copy in
 each processes.
 
-## Changes to Joblib
+See [Matthew Rocklin's
+article](http://matthewrocklin.com/blog/work/2015/03/10/PyData-GIL) and [David
+Beazley's page](http://www.dabeaz.com/GIL/) if you want to learn more.
 
-A while back, Jim Crist added the ``dask.distributed.joblib`` backend for
-joblib. ``dask.distributed`` registers a backend with joblib, so that users can
-parallelize a computation across an *entire cluster*, not just your local
-machine's threads or processes.
+## Distributed Training with dask.distributed
+
+For a while now, you've been able to use
+[`dask.distributed`](http://distributed.readthedocs.io/en/latest/) as a
+backend for joblib. This means that in *most* places scikit-learn offers an
+`n_jobs` keyword, you're able to do the parallel computation on your cluster.
 
 This is great when
 
 1. Your dataset is not too large (since the data must be sent to each worker)
-2. The runtime of each task (say fitting one of the trees in a `RandomForest`
+2. The runtime of each task (say fitting one of the trees in a `RandomForest`)
    is long enough that the overhead of serializing the data across the network
    to the worker doesn't dominate the runtime
 3. You have *many* parallel tasks to run (else, you'd just use a local thread or
    process pool and avoid the network delay)
 
-Here's a small example showing how to use dask's distributed joblib backend.
-
-We will
-
-1. Create / connect to our `dask.distributed` cluster (normally you'd put the IP
-   address of your scheduler in the call to `Client`)
-2. Define a function to simulate our "work", which draws a random number, and
-   sleeps for that times a factor
-3. Do the work in parallel, using a `joblib.Parallel` call inside our parallel
-   backend call.
-
 ```python
-import random
-import time
-
-import joblib
-import distributed.joblib  # register backend
+from sklearn.externals import joblib
 from dask.distributed import Client
+import distributed.joblib  # register the joblib backend
 
+client = Client('dask-scheduler:8786')
 
-client = Client()  # Pass the IP address of your scheduler here.
-
-
-def f(x):
-    result = x * random.random()
-    time.sleep(result)  # simulate a long computation
-    return result
-
-
-with joblib.parallel_backend("dask.distributed"):
-    # 'results' is computed in parallel using every worker
-    # in your cluster.
-    results = joblib.Parallel(n_jobs=-1)(
-        joblib.delayed(f)(i) for i in range(10)
-    )
+with joblib.parallel_backend("dask", scatter=[X_train, y_train]):
+    clf.fit(X_train, y_train)
 ```
 
-Each call to `f` happens on one of our workers. With a large enough cluster,
-each call would happen on a different worker.
+The `.fit` call will then be parallelized across all the workers in your
+cluster. Here's the distributed dashboard during that training.
 
-There were a few issues with this though, which we were able to resolve last
-week.
+<video src="/images/distributed-joblib-cluster.webm" autoplay controls loop width="80%">
+  Your browser doesn't support HTML5 video.
+</video>
+
+The center pane shows the task stream as they complete. Each rectangle is a
+single task, building a single tree in a random forest in this case. Workers are
+represented vertically. I had 8 workers with 4 cores each, which means up to 32
+tasks can be processed simultaneously. We fit the 200 trees in about 20 seconds.
+
+## Changes to Joblib
+
+Above, I said that distributed training worked in *most* places in scikit-learn.
+Getting it to work everywhere required a bit more work, and was part of last
+week's focus.
 
 First, `dask.distributed`'s joblib backend didn't handle *nested* parallelism
 well. This may occur if you do something like
 
 ```pytohn
 gs = GridSearchCV(Estimator(n_jobs=-1), n_jobs=-1)
+gs.fit(X, y)
 ```
 
-You could run into deadlocks where the outer level kicks off a bunch of
-`Parallel` calls. Those inner `Parallel` calls would make their way to the
-distributed scheduler, who would look around for a free worker. But all the
-workers were "busy" waiting around for the outer `Parallel` calls to finish,
+Previously, that cause deadlocks. Inside `GridSearchCV`, there's a call like
+
+```python
+# In GridSearchCV.fit, the outer layer
+results = joblib.Parallel(n_jobs=n_jobs)(fit_estimator)(...)
+```
+
+where `fit_estimator` is a function that *itself* tries to do things in parallel
+
+```python
+# In fit_estimator, the inner layer
+results = joblib.Parallel(n_jobs=n_jobs)(fit_one)(...)
+```
+
+So the outer level kicks off a bunch of `joblib.Parallel` calls, and waits
+around for the results. For each of those `Parallel` calls, the inner level
+tries to make a bunch of `joblib.Parallel` calls. When joblib tried to start the
+inner ones, it would ask the distributed scheduler for a free worker. But all
+the workers were "busy" waiting around for the outer `Parallel` calls to finish,
 which weren't progressing because there weren't any free workers! Deadlock!
 
-`dask.distributed` has a solution for this case (workers `secede` from the
-thread pool when they start a long-running `Parllel` call, and `rejoin` when
-they're done), but we needed a way to negotiate with joblib about when the
+`dask.distributed` has a solution for this case (workers
+[`secede`](http://distributed.readthedocs.io/en/latest/api.html#distributed.secede)
+from the thread pool when they start a long-running `Parllel` call, and
+[`rejoin`](http://distributed.readthedocs.io/en/latest/api.html#distributed.rejoin)
+when they're done), but we needed a way to negotiate with joblib about when the
 `secede` and `rejoin` should happen. Joblib now has an API for backends to
-control some setup and teardown around the actual function execution.
+control some setup and teardown around the actual function execution. This work
+was done in [Joblib #538](https://github.com/joblib/joblib/pull/538) and
+[dask-distributed #1705](https://github.com/dask/distributed/pull/1705).
 
 Second, some places in scikit-learn hard-code the backend they want to use in
 their `Parallel()` call, meaning the cluster isn't used. This may be because the
@@ -128,27 +150,35 @@ numeric and releases the GIL. In this case we would say the `Parallel` call
 slower.
 
 Another reason for hard-coding the backend is if the *correctness* of the
-implementation relies on it. For example, `RandomForest.predict` allocates the
-output array and mutates the output array from many threads (it knows not to
-mutate the same place). In this case, we'd say the `Parallel` call *requires*
-shared memory, because you'd get an incorrect result using processes.
+implementation relies on it. For example, `RandomForest.predict` preallocates
+the output array and mutates it from many threads (it knows not to mutate the
+same place from multiple threads). In this case, we'd say the `Parallel` call
+*requires* shared memory, because you'd get an incorrect result using processes.
 
-The solution was enhance `joblib.Parallel` to take two new keywords, `prefer`
-and `require`. If a `Parallel` call *prefers* threads, it'll use them, unless
-it's in a context saying "use this backend instead", like
+The solution was to enhance `joblib.Parallel` to take two new keywords, `prefer`
+and `require` in [Joblib #602](https://github.com/joblib/joblib/pull/602). If a
+`Parallel` call *prefers* threads, it'll use them, unless it's in a context
+saying "use this backend instead", like
 
 ```python
-with joblib.parallel_backend('dask.distributed'):
+def fit(n_jobs=-1):
+    return joblib.Parallel(n_jobs=n_jobs, prefer="threads")(...)
+
+
+with joblib.parallel_backend('dask'):
     # This uses dask's workers, not threads
-    joblib.Parallel(n_jobs=-1, prefer="threads")(...)
+    fit()
 ```
 
 On the other hand, if a `Parallel` requires a specific backend, it'll get it.
 
 ```python
-with joblib.parallel_backend('dask.distributed'):
+def fit(n_jobs=-1):
+    return joblib.Parallel(n_jobs=n_jobs, require="sharedmem")(...)
+
+with joblib.parallel_backend('dask'):
     # This uses the threading backend, since shared memory is required
-    joblib.Parallel(n_jobs=-1, require="sharedmem")(...)
+    fit()
 ```
 
 This is a elegant way to negotiate a compromise between
@@ -158,7 +188,9 @@ This is a elegant way to negotiate a compromise between
 2. The *algorithm author*, who knows best about the GIL handling and shared
    memory requirements.
 
-After the next joblib release, we'll update scikit-learn to use it in places
-where it currently hardcodes the parallel backend.
+After the next joblib release, we'll update scikit-learn to use these options in
+places where the backend is currently hardcoded. My example above used a branch
+with those changes.
 
-#TODO: embed movie of the distributed scheduler.
+Look forward for these changes in the upcoming joblib, dask, and scikit-learn
+releases. As always, let me know if you have any feedback.
