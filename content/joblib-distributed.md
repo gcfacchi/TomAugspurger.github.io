@@ -18,11 +18,12 @@ internally (fitting each of the trees in a `RandomForest` for example). Or your
 meta-estimator like `GridSearchCV` may try out many combinations of
 hyper-parameters in parallel.
 
-You can think of `joblib` as a broker between the user and the algorithm author.
+You can think of joblib as a broker between the user and the algorithm author.
 The user comes along and says, "I have `n_jobs` cores, please use them!".
 Scikit-Learn says "I have all these embarrassingly tasks to be run as part of
 fitting this estimator." Joblib accepts the cores from the user and the tasks
-from scikit-learn, and hands the completed tasks back to scikit-learn.
+from scikit-learn, runs the tasks on the cores, and hands the completed tasks
+back to scikit-learn.
 
 Joblib offers a few "backends" for how to do your parallelism, but they all boil
 down to using many processes versus using many cores.
@@ -67,11 +68,15 @@ backend for joblib. This means that in *most* places scikit-learn offers an
 This is great when
 
 1. Your dataset is not too large (since the data must be sent to each worker)
-2. The runtime of each task (say fitting one of the trees in a `RandomForest`)
-   is long enough that the overhead of serializing the data across the network
-   to the worker doesn't dominate the runtime
-3. You have *many* parallel tasks to run (else, you'd just use a local thread or
+2. The runtime of each task is long enough that the overhead of serializing the
+   data across the network to the worker doesn't dominate the runtime
+3. You have many parallel tasks to run (else, you'd just use a local thread or
    process pool and avoid the network delay)
+
+A good example of this may be fitting a `RandomForest`. Each tree in a forest
+may be built independently of every other tree. This next code chunk shows how
+you would fit a `RandomForest` using a cluster, though as discussed later this
+won't work on the currently released versions of scikit-learn and joblib.
 
 ```python
 from sklearn.externals import joblib
@@ -84,8 +89,8 @@ with joblib.parallel_backend("dask", scatter=[X_train, y_train]):
     clf.fit(X_train, y_train)
 ```
 
-The `.fit` call will then be parallelized across all the workers in your
-cluster. Here's the distributed dashboard during that training.
+The `.fit` call is parallelized across all the workers in your cluster. Here's
+the distributed dashboard during that training.
 
 <video src="/images/distributed-joblib-cluster.webm" autoplay controls loop width="80%">
   Your browser doesn't support HTML5 video.
