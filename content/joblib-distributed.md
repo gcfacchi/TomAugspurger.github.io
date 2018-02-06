@@ -1,9 +1,11 @@
 ---
 title: Easy distributed training with Joblib and dask
-date: 2017-10-26
+date: 2018-02-05
 slug: distributed-joblib
-status: draft
 ---
+
+*This work is supported by [Anaconda Inc](http://anaconda.com/ and the Data
+Driven Discovery Initiative from the [Moore Foundation](https://www.moore.org/)*
 
 This past week, I had a chance to visit some of the scikit-learn developers at
 Inria in Paris. It was a fun and productive week, and I'm thankful to them for
@@ -20,13 +22,13 @@ hyper-parameters in parallel.
 
 You can think of joblib as a broker between the user and the algorithm author.
 The user comes along and says, "I have `n_jobs` cores, please use them!".
-Scikit-Learn says "I have all these embarrassingly tasks to be run as part of
-fitting this estimator." Joblib accepts the cores from the user and the tasks
-from scikit-learn, runs the tasks on the cores, and hands the completed tasks
-back to scikit-learn.
+Scikit-Learn says "I have all these embarrassingly parallel tasks to be run as
+part of fitting this estimator." Joblib accepts the cores from the user and the
+tasks from scikit-learn, runs the tasks on the cores, and hands the completed
+tasks back to scikit-learn.
 
 Joblib offers a few "backends" for how to do your parallelism, but they all boil
-down to using many processes versus using many cores.
+down to using many processes versus using many threads.
 
 ## Parallelism in Python
 
@@ -45,14 +47,13 @@ Cython or C via NumPy or pandas, can get real thread-based parallelism without
 being limited by the GIL. The main caveat here that manipulating strings or
 Python objects (lists, dicts, sets, etc) typically requires holding the GIL.
 
-So, if we have the *option* of choosing threads or processes, which do we
-want? For most numeric / scientific workloads, threads are better than
-processes because of *shared memory*. Each thread in a thread-pool can view (and
-modify!) the *same* large NumPy array or pandas dataframe. With multiple
-processes, data must be *serialized* between processes (perhaps using pickle).
-For large arrays or dataframes this can be slow, and it may blow up your memory
-if the data a decent fraction of your machine's RAM. You'll have a full copy in
-each processes.
+So, if we have the *option* of choosing threads or processes, which do we want?
+For most numeric / scientific workloads, threads are better than processes
+because of *shared memory*. Each thread in a thread-pool can view (and modify!)
+the *same* large NumPy array. With multiple processes, data must be *serialized*
+between processes (perhaps using pickle). For large arrays or dataframes this
+can be slow, and it may blow up your memory if the data a decent fraction of
+your machine's RAM. You'll have a full copy in each processes.
 
 See [Matthew Rocklin's
 article](http://matthewrocklin.com/blog/work/2015/03/10/PyData-GIL) and [David
@@ -73,10 +74,11 @@ This is great when
 3. You have many parallel tasks to run (else, you'd just use a local thread or
    process pool and avoid the network delay)
 
-A good example of this may be fitting a `RandomForest`. Each tree in a forest
-may be built independently of every other tree. This next code chunk shows how
-you would fit a `RandomForest` using a cluster, though as discussed later this
-won't work on the currently released versions of scikit-learn and joblib.
+Fitting a `RandomForest` is a good example of this. Each tree in a forest may be
+built independently of every other tree. This next code chunk shows how you can
+parallelize fitting a `RandomForestClassifier` across a cluster, though as
+discussed later this won't work on the currently released versions of
+scikit-learn and joblib.
 
 ```python
 from sklearn.externals import joblib
@@ -98,8 +100,9 @@ the distributed dashboard during that training.
 
 The center pane shows the task stream as they complete. Each rectangle is a
 single task, building a single tree in a random forest in this case. Workers are
-represented vertically. I had 8 workers with 4 cores each, which means up to 32
-tasks can be processed simultaneously. We fit the 200 trees in about 20 seconds.
+represented vertically. My cluster had 8 workers with 4 cores each, which means
+up to 32 tasks can be processed simultaneously. We fit the 200 trees in about 20
+seconds.
 
 ## Changes to Joblib
 
@@ -115,7 +118,7 @@ gs = GridSearchCV(Estimator(n_jobs=-1), n_jobs=-1)
 gs.fit(X, y)
 ```
 
-Previously, that cause deadlocks. Inside `GridSearchCV`, there's a call like
+Previously, that caused deadlocks. Inside `GridSearchCV`, there's a call like
 
 ```python
 # In GridSearchCV.fit, the outer layer
@@ -161,9 +164,8 @@ same place from multiple threads). In this case, we'd say the `Parallel` call
 *requires* shared memory, because you'd get an incorrect result using processes.
 
 The solution was to enhance `joblib.Parallel` to take two new keywords, `prefer`
-and `require` in [Joblib #602](https://github.com/joblib/joblib/pull/602). If a
-`Parallel` call *prefers* threads, it'll use them, unless it's in a context
-saying "use this backend instead", like
+and `require`. If a `Parallel` call *prefers* threads, it'll use them, unless
+it's in a context saying "use this backend instead", like
 
 ```python
 def fit(n_jobs=-1):
@@ -193,9 +195,11 @@ This is a elegant way to negotiate a compromise between
 2. The *algorithm author*, who knows best about the GIL handling and shared
    memory requirements.
 
-After the next joblib release, we'll update scikit-learn to use these options in
-places where the backend is currently hardcoded. My example above used a branch
-with those changes.
+This work was done in [Joblib #602](https://github.com/joblib/joblib/pull/602).
+
+After the next joblib release, scikit-learn will be updated to use these options
+in places where the backend is currently hard-coded. My example above used a
+branch with those changes.
 
 Look forward for these changes in the upcoming joblib, dask, and scikit-learn
 releases. As always, let me know if you have any feedback.
