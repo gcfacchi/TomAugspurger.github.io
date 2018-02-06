@@ -4,8 +4,9 @@ date: 2018-02-05
 slug: distributed-joblib
 ---
 
-*This work is supported by [Anaconda Inc](http://anaconda.com/ and the Data
-Driven Discovery Initiative from the [Moore Foundation](https://www.moore.org/)*
+*This work is supported by [Anaconda Inc](http://anaconda.com/) and the Data
+Driven Discovery Initiative from the [Moore
+Foundation](https://www.moore.org/).*
 
 This past week, I had a chance to visit some of the scikit-learn developers at
 Inria in Paris. It was a fun and productive week, and I'm thankful to them for
