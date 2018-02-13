@@ -50,7 +50,7 @@ ParallelPostFit(estimator=GradientBoostingClassifier(...))
 ```
 
 Nothing special so far. But now, let's suppose we had a "large" dataset for
-prediction. We'll use `dask_ml.datasets.make_classifciation`, but in practice
+prediction. We'll use `dask_ml.datasets.make_classification`, but in practice
 you would read this from a file system or database.
 
 ```python
