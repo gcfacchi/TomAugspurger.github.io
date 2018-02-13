@@ -1,6 +1,6 @@
 ---
 title: "dask-ml 0.4.1 Released"
-date: 2017-02-13
+date: 2018-02-13
 slug: dask-ml-041
 ---
 
