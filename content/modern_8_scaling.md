@@ -1,7 +1,8 @@
 ---
 title: "Modern Pandas (Part 8): Scaling"
-date: "2018-04-21"
+date: "2018-04-23"
 slug: "modern-8-scaling"
+status: draft
 ---
 
 As I sit down to write this, the third-most popular pandas question on StackOverflow covers [how to use pandas for large datasets](https://stackoverflow.com/q/14262433/1889400). This is in tension with the fact that a pandas DataFrame is an in memory container. *You can't have a `DataFrame` larger than your machine's RAM*. In practice, your available RAM should be several times the size of your dataset, as your or pandas will have to make intermediate copies as part of the analysis.
