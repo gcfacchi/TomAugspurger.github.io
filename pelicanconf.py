@@ -26,6 +26,7 @@ THEME = "pelican-themes/pelican-hss"
 CSS_FILE = "main.css"
 STATIC_PATHS = [
     "images/",
+    "extras/",
     "modern_2_method_chaining_files/",
     "Indexes_files/"
     "modern_2_method_chaining_files/",
@@ -33,6 +34,7 @@ STATIC_PATHS = [
     "modern_5_tidy_files/",
     "modern_6_visualization_files/",
     "modern_7_timeseries_files/",
+    "modern-pandas-08_files",
 ]
 
 PLUGIN_PATHS = [
@@ -49,3 +51,9 @@ FEED_RSS = 'feed'
 
 DISQUS_SITENAME = "tomaugspurger"
 GOOGLE_ANALYTICS = "UA-48304175-1"
+
+EXTRA_PATH_METADATA = {
+  'extras/custom.css': {'path': 'theme/css/custom.css'}
+}
+
+CUSTOM_CSS_URL = "theme/css/custom.css"
