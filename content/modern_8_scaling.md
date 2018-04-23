@@ -134,7 +134,7 @@ There are a couple differences from the original pandas version, which we'll dis
 
 Now that we've seen `dask.dataframe` in action, let's step back and discuss Dask a bit. Dask is an open-source project that natively parallizes Python. I'm a happy user of and contributor to Dask.
 
-At a high-level, Dask provide familiar APIs for [large N-dimensional arrays](https://dask.pydata.org/en/latest/array.html), [large DataFrames](https://dask.pydata.org/en/latest/dataframe.html), and [familiar](https://distributed.readthedocs.io/en/latest/quickstart.html#map-and-submit-functions) ways to parallelize [custom algorithms](https://dask.pydata.org/en/latest/delayed.html).
+At a high-level, Dask provides familiar APIs for [large N-dimensional arrays](https://dask.pydata.org/en/latest/array.html), [large DataFrames](https://dask.pydata.org/en/latest/dataframe.html), and [familiar](https://distributed.readthedocs.io/en/latest/quickstart.html#map-and-submit-functions) ways to parallelize [custom algorithms](https://dask.pydata.org/en/latest/delayed.html).
 
 At a low-level, each of these is built on high-performance [task scheduling](http://dask.pydata.org/en/latest/scheduling.html) that executes operations in parallel. The [low-level details](http://dask.pydata.org/en/latest/spec.html) aren't too important; all we care about is that
 
@@ -212,7 +212,7 @@ A Dask DataFrame consists of many pandas DataFrames arranged by the index. Dask 
 
 All the actual computation (reading from disk, computing the value counts, etc.) eventually use pandas internally. If I do `df.occupation.str.len`, Dask will coordinate calling `pandas.Series.str.len` on each of the pandas DataFrames.
 
-Those reading carefully will notice a problem with the statement "A Dask DataFrame consists of many pandas DataFrames". Our initial problem was that we didn't have enough memory for those DataFrames! How can Dask be coordinating DataFrames if there isn't enough memory? This brings us to the second major difference: Dask DataFrames (and arrays) are lazy. Operations on them don't execute and produce the final result immediately. Rather, calling methods on them build up a task graph.
+Those reading carefully will notice a problem with the statement "A Dask DataFrame consists of many pandas DataFrames". Our initial problem was that we didn't have enough memory for those DataFrames! How can Dask be coordinating DataFrames if there isn't enough memory? This brings us to the second major difference: Dask DataFrames (and arrays) are lazy. Operations on them don't execute and produce the final result immediately. Rather, calling methods on them builds up a task graph.
 
 We can visualize task graphs using `graphviz`. For the blog, I've trimmed down the example to be a subset of the entire graph.
 
@@ -230,7 +230,7 @@ df.visualize(rankdir='LR')
 
 `df` (the dask DataFrame consisting of many pandas DataFrames) has a task graph with 5 calls to a parquet reader (one for each file), each of which produces a DataFrame when called.
 
-Calling additional methods on `df` add additional tasks to this graph. For example, our `most_common` has three additional calls
+Calling additional methods on `df` adds additional tasks to this graph. For example, our `most_common` Series has three additional calls
 
 - Select the `occupation` column (`__getitem__`)
 - Perform the value counts
