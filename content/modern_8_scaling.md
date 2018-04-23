@@ -4,6 +4,23 @@ date: "2018-04-23"
 slug: "modern-8-scaling"
 ---
 
+---
+
+This is part 1 in my series on writing modern idiomatic pandas.
+
+- [Modern Pandas](modern-1-intro)
+- [Method Chaining](method-chaining)
+- [Indexes](modern-3-indexes)
+- [Fast Pandas](modern-4-performance)
+- [Tidy Data](modern-5-tidy)
+- [Visualization](modern-6-visualization)
+- [Time Series](modern-7-timeseries)
+- [Scaling](modern-8-scaling)
+
+---
+
+
+
 As I sit down to write this, the third-most popular pandas question on StackOverflow covers [how to use pandas for large datasets](https://stackoverflow.com/q/14262433/1889400). This is in tension with the fact that a pandas DataFrame is an in memory container. *You can't have a `DataFrame` larger than your machine's RAM*. In practice, your available RAM should be several times the size of your dataset, as you or pandas will have to make intermediate copies as part of the analysis.
 
 Historically, pandas users have scaled to larger datasets by switching away from pandas or using iteration. Both of these are perfectly valid approaches, but changing your workflow in response to scaling data is unfortunate. I use pandas because it's a pleasant experience, and I would like that experience to scale to larger datasets. That's what [Dask](dask.pydata.org/), a parallel computing library, enables. We'll discuss Dask in detail later. But first, let's work through scaling a simple analysis to a larger than memory dataset.

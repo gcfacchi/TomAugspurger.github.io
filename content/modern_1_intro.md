@@ -18,6 +18,7 @@ This is part 1 in my series on writing modern idiomatic pandas.
 - [Tidy Data](modern-5-tidy)
 - [Visualization](modern-6-visualization)
 - [Time Series](modern-7-timeseries)
+- [Scaling](modern-8-scaling)
 
 ---
 
