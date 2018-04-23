@@ -5,11 +5,11 @@ slug: "modern-8-scaling"
 status: draft
 ---
 
-As I sit down to write this, the third-most popular pandas question on StackOverflow covers [how to use pandas for large datasets](https://stackoverflow.com/q/14262433/1889400). This is in tension with the fact that a pandas DataFrame is an in memory container. *You can't have a `DataFrame` larger than your machine's RAM*. In practice, your available RAM should be several times the size of your dataset, as your or pandas will have to make intermediate copies as part of the analysis.
+As I sit down to write this, the third-most popular pandas question on StackOverflow covers [how to use pandas for large datasets](https://stackoverflow.com/q/14262433/1889400). This is in tension with the fact that a pandas DataFrame is an in memory container. *You can't have a `DataFrame` larger than your machine's RAM*. In practice, your available RAM should be several times the size of your dataset, as you or pandas will have to make intermediate copies as part of the analysis.
 
 Historically, pandas users have scaled to larger datasets by switching away from pandas or using iteration. Both of these are perfectly valid approaches, but changing your workflow in response to scaling data is unfortunate. I use pandas because it's a pleasant experience, and I would like that experience to scale to larger datasets. That's what [Dask](dask.pydata.org/), a parallel computing library, enables. We'll discuss Dask in detail later. But first, let's work through scaling a simple analysis to a larger than memory dataset.
 
-Our task is to find the 100 most-common occupations reported in the FEC's [individual contributions dataest](https://classic.fec.gov/finance/disclosure/ftpdet.shtml). The files are split by election cycle (2007-2008, 2009-2010, ...). My laptop can read in each cycle's file individually, but the full dataset is too large to read in at once. Let's read in just 2010's file, and do the "small data" version.
+Our task is to find the 100 most-common occupations reported in the FEC's [individual contributions dataest](https://classic.fec.gov/finance/disclosure/ftpdet.shtml). The files are split by election cycle (2007-2008, 2009-2010, ...). You can find some scripts for downloading the data in [this repository](https://github.com/tomaugspurger/scalable-ml-fec). My laptop can read in each cycle's file individually, but the full dataset is too large to read in at once. Let's read in just 2010's file, and do the "small data" version.
 
 
 ```python
@@ -325,7 +325,7 @@ client = Client(processes=False)
 ```
 
 
-Calling `Client` without providing a scheduler address will make a local cluster of threads or processes on your machine. There are [many ways](http://dask.pydata.org/en/latest/setup.html) to deploy a Dask cluster, though we're particularly fond of [Kubernetes](http://dask.pydata.org/en/latest/setup/kubernetes.html). This highlights one of my favorite features of Dask: it scales down to use a handful of threads on a laptop *or* up to a cluster with thousands of nodes. Dask can comfortably handle medium-sized datasets (dozens of GBs, so larger than RAM) on a laptop. Or it can scale up to very large datasets with a cluster.
+Calling `Client` without providing a scheduler address will make a local "cluster" of threads or processes on your machine. There are [many ways](http://dask.pydata.org/en/latest/setup.html) to deploy a Dask cluster onto an actual cluster of machines, though we're particularly fond of [Kubernetes](http://dask.pydata.org/en/latest/setup/kubernetes.html). This highlights one of my favorite features of Dask: it scales down to use a handful of threads on a laptop *or* up to a cluster with thousands of nodes. Dask can comfortably handle medium-sized datasets (dozens of GBs, so larger than RAM) on a laptop. Or it can scale up to very large datasets with a cluster.
 
 
 ```python
