@@ -2,8 +2,9 @@
 title: "Distributed Auto-ML with TPOT with Dask"
 date: 2018-08-30
 slug: distributed-tpot
-status: draft
 ---
+
+*This work is supported by [Anaconda Inc][anaconda].*
 
 This post describes a recent improvement made to [TPOT][tpot]. TPOT is an
 [automated machine learning][auto-ml] library for Python. It does some feature
@@ -59,13 +60,14 @@ If you have a library that you think could take advantage of Dask, please [reach
 out][dask]!
 
 
-[tpot]: https://epistasislab.github.io/tpot/
+[anaconda]:https://www.anaconda.com/ 
 [auto-ml]: https://en.wikipedia.org/wiki/Automated_machine_learning
-[ga]: https://en.wikipedia.org/wiki/Genetic_programming
-[tpot-730]: https://github.com/EpistasisLab/tpot/pull/730
 [binder]: https://mybinder.org/v2/gh/dask/dask-examples/master?filepath=machine-learning%2Ftpot.ipynb
-[xarray]: http://xarray.pydata.org/en/stable/
-[xarray-dask]: http://xarray.pydata.org/en/stable/dask.html
 [dask]: https://github.com/dask/dask
-[repeated-work]: https://dask.github.io/dask-ml/hyper-parameter-search.html#avoid-repeated-work
 [delayed]: http://dask.pydata.org/en/latest/delayed.html
+[ga]: https://en.wikipedia.org/wiki/Genetic_programming
+[repeated-work]: https://dask.github.io/dask-ml/hyper-parameter-search.html#avoid-repeated-work
+[tpot-730]: https://github.com/EpistasisLab/tpot/pull/730
+[tpot]: https://epistasislab.github.io/tpot/
+[xarray-dask]: http://xarray.pydata.org/en/stable/dask.html
+[xarray]: http://xarray.pydata.org/en/stable/
