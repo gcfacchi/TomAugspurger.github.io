@@ -41,15 +41,14 @@ PLUGIN_PATHS = [
     'pelican-plugins'
 ]
 PLUGINS = [
-    'pandoc_reader',  # waiting on https://github.com/liob/pandoc_reader/pull/4
+    # 'pandoc_reader',  # waiting on https://github.com/liob/pandoc_reader/pull/4
     'pelican-yaml-metadata',
-    'pelican_alias',
+    # 'pelican_alias',
     # 'render_math',
 ]
 RELATIVE_URLS = True
 FEED_RSS = 'feed'
 
-DISQUS_SITENAME = "tomaugspurger"
 GOOGLE_ANALYTICS = "UA-48304175-1"
 
 EXTRA_PATH_METADATA = {
