@@ -1,6 +1,6 @@
 ---
 title: pandas + binder
-date: 2019-07-22
+date: 2019-07-21
 ---
 
 This post describes the start of a journey to get pandas' documentation running
